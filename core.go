@@ -12,6 +12,8 @@ import (
 	"strings"
 )
 
+const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient) by meta:User:Cgtdk"
+
 type API struct {
 	Client    *http.Client
 	Jar       *cookiejar.Jar
@@ -23,7 +25,7 @@ type API struct {
 func NewAPI(url string) *API {
 	cjar := cookiejar.NewJar(false)
 	httpclient := &http.Client{nil, nil, cjar}
-	return &API{httpclient, cjar, url, "json", "https://github.com/cgtdk/go-mwclient"}
+	return &API{httpclient, cjar, url, "json", DefaultUserAgent}
 }
 
 func (c *API) Get(params url.Values) (*simplejson.Json, error) {
