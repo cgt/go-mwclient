@@ -1,3 +1,4 @@
+// Package mwclient provides methods for interacting with the MediaWiki API.
 package mwclient
 
 import (
@@ -22,12 +23,14 @@ type API struct {
 	UserAgent string
 }
 
+// NewAPI returns an initialized API object.
 func NewAPI(url string) *API {
 	cjar := cookiejar.NewJar(false)
 	httpclient := &http.Client{nil, nil, cjar}
 	return &API{httpclient, cjar, url, "json", DefaultUserAgent}
 }
 
+// Get sends a GET HTTP request to the MediaWiki API with the parameters passed to it.
 func (c *API) Get(params url.Values) (*simplejson.Json, error) {
 	// Ensure API returns JSON
 	params.Set("format", c.Format)
@@ -42,6 +45,7 @@ func (c *API) Get(params url.Values) (*simplejson.Json, error) {
 	return c.handleResponse(req)
 }
 
+// Post sends a POST HTTP request to the MediaWiki API with the parameters passed to it.
 func (c *API) Post(params url.Values) (*simplejson.Json, error) {
 	// Ensure API returns JSON
 	params.Set("format", c.Format)
@@ -96,6 +100,7 @@ func (c *API) handleResponse(req *http.Request) (*simplejson.Json, error) {
 	return js, nil
 }
 
+// Login attempts to login using the provided username and password.
 func (c *API) Login(username, password, token string) (bool, error) {
 	v := url.Values{}
 	v.Set("action", "login")
