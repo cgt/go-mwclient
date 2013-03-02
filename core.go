@@ -1,4 +1,4 @@
-package go-mwclient
+package mwclient
 
 import (
 	"code.google.com/p/cookiejar"
@@ -9,29 +9,46 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type API struct {
-	Client *http.Client
-	Jar    *cookiejar.Jar
-	ApiUrl string
-	Format string
+	Client    *http.Client
+	Jar       *cookiejar.Jar
+	ApiUrl    string
+	Format    string
+	UserAgent string
 }
 
 func NewAPI(url string) *API {
 	cjar := cookiejar.NewJar(false)
 	httpclient := &http.Client{nil, nil, cjar}
-	return &API{httpclient, cjar, url, "json"}
+	return &API{httpclient, cjar, url, "json", "https://github.com/cgtdk/go-mwclient"}
 }
 
 func (c *API) Get(params url.Values) (*simplejson.Json, error) {
+	// Ensure API returns JSON
 	params.Set("format", c.Format)
-	resp, err := c.Client.Get(fmt.Sprintf("%s?%s", c.ApiUrl, params.Encode()))
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s?%s", c.ApiUrl, params.Encode()), nil)
+	if err != nil {
+		log.Printf("Error creation of request: %s\n", err)
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
+
+	urlValue, _ := url.Parse(c.ApiUrl)
+	for _, cookie := range c.Jar.Cookies(urlValue) {
+		req.AddCookie(cookie)
+	}
+
+	resp, err := c.Client.Do(req)
 	defer resp.Body.Close()
 	if err != nil {
 		log.Printf("Error during GET: %s\n", err)
 		return nil, err
 	}
+	c.Jar.SetCookies(req.URL, resp.Cookies())
 
 	jsonBuf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -53,17 +70,34 @@ func (c *API) Get(params url.Values) (*simplejson.Json, error) {
 }
 
 func (c *API) Post(params url.Values) (*simplejson.Json, error) {
+	// Ensure API returns JSON
 	params.Set("format", c.Format)
-	resp, err := c.Client.PostForm(c.ApiUrl, params)
+
+	req, err := http.NewRequest("POST", c.ApiUrl, strings.NewReader(params.Encode()))
+	if err != nil {
+		log.Printf("Error creation of request: %s\n", err)
+		return nil, err
+	}
+	req.Header.Set("User-Agent", c.UserAgent)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	urlValue, _ := url.Parse(c.ApiUrl)
+	for _, cookie := range c.Jar.Cookies(urlValue) {
+		req.AddCookie(cookie)
+	}
+
+	resp, err := c.Client.Do(req)
 	defer resp.Body.Close()
 	if err != nil {
 		log.Printf("Error during POST: %s\n", err)
 		return nil, err
 	}
+	c.Jar.SetCookies(req.URL, resp.Cookies())
 
 	jsonBuf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("Error reading from resp.Body: %s\n", err)
+		//log.Printf("Error reading from resp.Body: %s\n", err)
+		panic(err)
 		return nil, err
 	}
 
