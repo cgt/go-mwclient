@@ -1,8 +1,12 @@
-==========
+===========
 go-mwclient
-==========
+===========
 
 go-mwclient is a library for interacting with the MediaWiki API.
+
+::
+
+    import mwc "github.com/cgtdk/go-mwclient"
 
 Legal information
 =================
