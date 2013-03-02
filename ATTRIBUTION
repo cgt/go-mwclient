@@ -1,6 +1,6 @@
 This project includes the following third party code:
 
-go-simplejson (https://github.com/bitly/nsq)
+go-simplejson (https://github.com/bitly/go-simplejson)
 
 
 cookiejar (https://code.google.com/p/cookiejar) which is subject to the terms of the
