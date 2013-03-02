@@ -126,3 +126,10 @@ func (c *API) Login(username, password, token string) (bool, error) {
 
 	return true, nil
 }
+
+// Logout logs out. It does not take into account whether or not a user is actually
+// logged in (because it is irrelevant).
+func (c *API) Logout() bool {
+	c.Get(url.Values{"action": {"logout"}})
+	return true
+}
