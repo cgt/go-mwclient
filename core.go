@@ -96,8 +96,7 @@ func (c *API) Post(params url.Values) (*simplejson.Json, error) {
 
 	jsonBuf, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		//log.Printf("Error reading from resp.Body: %s\n", err)
-		panic(err)
+		log.Printf("Error reading from resp.Body: %s\n", err)
 		return nil, err
 	}
 
