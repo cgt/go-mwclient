@@ -37,36 +37,7 @@ func (c *API) Get(params url.Values) (*simplejson.Json, error) {
 	}
 	req.Header.Set("User-Agent", c.UserAgent)
 
-	urlValue, _ := url.Parse(c.ApiUrl)
-	for _, cookie := range c.Jar.Cookies(urlValue) {
-		req.AddCookie(cookie)
-	}
-
-	resp, err := c.Client.Do(req)
-	defer resp.Body.Close()
-	if err != nil {
-		log.Printf("Error during GET: %s\n", err)
-		return nil, err
-	}
-	c.Jar.SetCookies(req.URL, resp.Cookies())
-
-	jsonBuf, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Error reading from resp.Body: %s\n", err)
-		return nil, err
-	}
-
-	js, err := simplejson.NewJson(jsonBuf)
-	if err != nil {
-		log.Printf("Error during JSON parsing: %s\n", err)
-		return nil, err
-	}
-
-	// Check for MediaWiki API errors
-	if apiErr, ok := resp.Header["Mediawiki-Api-Error"]; ok {
-		return js, errors.New(apiErr[0])
-	}
-	return js, nil
+	return c.handleResponse(req)
 }
 
 func (c *API) Post(params url.Values) (*simplejson.Json, error) {
@@ -81,7 +52,17 @@ func (c *API) Post(params url.Values) (*simplejson.Json, error) {
 	req.Header.Set("User-Agent", c.UserAgent)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	urlValue, _ := url.Parse(c.ApiUrl)
+	return c.handleResponse(req)
+}
+
+// handleResponse contains response handling code common to both API.Get() and API.Post().
+func (c *API) handleResponse(req *http.Request) (*simplejson.Json, error) {
+	urlValue, err := url.Parse(c.ApiUrl)
+	if err != nil {
+		log.Printf("Unable to parse URL %s: %s\n", c.ApiUrl, err)
+		return nil, err
+	}
+
 	for _, cookie := range c.Jar.Cookies(urlValue) {
 		req.AddCookie(cookie)
 	}
@@ -89,7 +70,7 @@ func (c *API) Post(params url.Values) (*simplejson.Json, error) {
 	resp, err := c.Client.Do(req)
 	defer resp.Body.Close()
 	if err != nil {
-		log.Printf("Error during POST: %s\n", err)
+		log.Printf("Error during GET: %s\n", err)
 		return nil, err
 	}
 	c.Jar.SetCookies(req.URL, resp.Cookies())
