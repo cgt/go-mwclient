@@ -2,7 +2,9 @@
 go-mwclient
 ===========
 
-go-mwclient is a library for interacting with the MediaWiki API.
+go-mwclient is a library for interacting with the MediaWiki API. The package is
+actually called `mwclient`, but I chose to prefix the repository's name with
+"go-" to avoid confusion with similarly named libraries.
 
 ::
 
