@@ -15,93 +15,101 @@ import (
 
 const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient) by meta:User:Cgtdk"
 
-type API struct {
-	Client    *http.Client
-	Jar       *cookiejar.Jar
-	ApiUrl    string
-	Format    string
-	UserAgent string
+type Wiki struct {
+	client            *http.Client
+	cjar              *cookiejar.Jar
+	ApiUrl            *url.URL
+	format, UserAgent string
 }
 
-// NewAPI returns an initialized API object.
-func NewAPI(url string) *API {
+// NewWiki returns an initialized Wiki object.
+func NewWiki(inUrl string) *Wiki {
 	cjar := cookiejar.NewJar(false)
-	httpclient := &http.Client{nil, nil, cjar}
-	return &API{httpclient, cjar, url, "json", DefaultUserAgent}
-}
-
-// Get sends a GET HTTP request to the MediaWiki API with the parameters passed to it.
-func (c *API) Get(params url.Values) (*simplejson.Json, error) {
-	// Ensure API returns JSON
-	params.Set("format", c.Format)
-
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s?%s", c.ApiUrl, params.Encode()), nil)
+	apiurl, err := url.Parse(inUrl)
 	if err != nil {
-		log.Printf("Error creation of request: %s\n", err)
-		return nil, err
+		panic(err) // Yes, this is bad, but so is using bad URLs and I don't want two return values.
 	}
-	req.Header.Set("User-Agent", c.UserAgent)
-
-	return c.handleResponse(req)
-}
-
-// Post sends a POST HTTP request to the MediaWiki API with the parameters passed to it.
-func (c *API) Post(params url.Values) (*simplejson.Json, error) {
-	// Ensure API returns JSON
-	params.Set("format", c.Format)
-
-	req, err := http.NewRequest("POST", c.ApiUrl, strings.NewReader(params.Encode()))
-	if err != nil {
-		log.Printf("Error creation of request: %s\n", err)
-		return nil, err
+	return &Wiki{
+		&http.Client{nil, nil, cjar},
+		cjar,
+		apiurl,
+		"json",
+		DefaultUserAgent,
 	}
-	req.Header.Set("User-Agent", c.UserAgent)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	return c.handleResponse(req)
 }
 
-// handleResponse contains response handling code common to both API.Get() and API.Post().
-func (c *API) handleResponse(req *http.Request) (*simplejson.Json, error) {
-	urlValue, err := url.Parse(c.ApiUrl)
+func (w *Wiki) call(params url.Values, post bool) (*simplejson.Json, error) {
+	params.Set("format", w.format)
+
+	// Make a POST or GET request depending on the "post" parameter.
+	var httpMethod string
+	if post {
+		httpMethod = "POST"
+	} else {
+		httpMethod = "GET"
+	}
+
+	var req *http.Request
+	var err error
+	if post {
+		req, err = http.NewRequest(httpMethod, w.ApiUrl.String(), strings.NewReader(params.Encode()))
+	} else {
+		req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.ApiUrl.String(), params.Encode()), nil)
+	}
 	if err != nil {
-		log.Printf("Unable to parse URL %s: %s\n", c.ApiUrl, err)
+		log.Printf("Unable to make request: %s\n", err)
 		return nil, err
 	}
 
-	for _, cookie := range c.Jar.Cookies(urlValue) {
+	// Set headers on request
+	req.Header.Set("User-Agent", w.UserAgent)
+	if post {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
+
+	// Set any old cookies on the request
+	for _, cookie := range w.cjar.Cookies(w.ApiUrl) {
 		req.AddCookie(cookie)
 	}
 
-	resp, err := c.Client.Do(req)
+	// Make the request
+	resp, err := w.client.Do(req)
 	defer resp.Body.Close()
 	if err != nil {
-		log.Printf("Error during GET: %s\n", err)
+		log.Printf("Error during %s: %s\n", httpMethod, err)
 		return nil, err
 	}
-	c.Jar.SetCookies(req.URL, resp.Cookies())
 
-	jsonBuf, err := ioutil.ReadAll(resp.Body)
+	// Set any new cookies
+	w.cjar.SetCookies(req.URL, resp.Cookies())
+
+	jsonResp, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("Error reading from resp.Body: %s\n", err)
 		return nil, err
 	}
 
-	js, err := simplejson.NewJson(jsonBuf)
+	js, err := simplejson.NewJson(jsonResp)
 	if err != nil {
 		log.Printf("Error during JSON parsing: %s\n", err)
 		return nil, err
 	}
 
-	// Check for MediaWiki API errors
-	if apiErr, ok := resp.Header["Mediawiki-Api-Error"]; ok {
-		return js, errors.New(apiErr[0])
-	}
 	return js, nil
 }
 
+// Get wraps the w.call method to make it do a GET request.
+func (w *Wiki) Get(params url.Values) (*simplejson.Json, error) {
+	return w.call(params, false)
+}
+
+// Post wraps the w.call method to make it do a POST request.
+func (w *Wiki) Post(params url.Values) (*simplejson.Json, error) {
+	return w.call(params, true)
+}
+
 // Login attempts to login using the provided username and password.
-func (c *API) Login(username, password, token string) (bool, error) {
+func (w *Wiki) Login(username, password, token string) (bool, error) {
 	v := url.Values{}
 	v.Set("action", "login")
 	v.Set("lgname", username)
@@ -110,7 +118,7 @@ func (c *API) Login(username, password, token string) (bool, error) {
 		v.Set("lgtoken", token)
 	}
 
-	resp, err := c.Post(v)
+	resp, err := w.Post(v)
 	if err != nil {
 		return false, err
 	}
@@ -118,7 +126,7 @@ func (c *API) Login(username, password, token string) (bool, error) {
 	if lgResult, _ := resp.Get("login").Get("result").String(); lgResult != "Success" {
 		if lgResult == "NeedToken" {
 			lgToken, _ := resp.Get("login").Get("token").String()
-			return c.Login(username, password, lgToken)
+			return w.Login(username, password, lgToken)
 		} else {
 			return false, errors.New(lgResult)
 		}
@@ -129,7 +137,7 @@ func (c *API) Login(username, password, token string) (bool, error) {
 
 // Logout logs out. It does not take into account whether or not a user is actually
 // logged in (because it is irrelevant). Always returns true.
-func (c *API) Logout() bool {
-	c.Get(url.Values{"action": {"logout"}})
+func (w *Wiki) Logout() bool {
+	w.Get(url.Values{"action": {"logout"}})
 	return true
 }
