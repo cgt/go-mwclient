@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// If you modify this package, please change the user agent.
 const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient) by meta:User:Cgtdk"
 
 type Wiki struct {
@@ -22,7 +23,9 @@ type Wiki struct {
 	format, UserAgent string
 }
 
-// NewWiki returns an initialized Wiki object.
+// NewWiki returns an initialized Wiki object. If the provided API url is an
+// invalid URL (as defined by the net/url package), then it will panic
+// with the error from url.Parse().
 func NewWiki(inUrl string) *Wiki {
 	cjar := cookiejar.NewJar(false)
 	apiurl, err := url.Parse(inUrl)
@@ -38,6 +41,8 @@ func NewWiki(inUrl string) *Wiki {
 	}
 }
 
+// call makes a GET or POST request to the Mediawiki API (depending on whether
+// the post argument is true or false (if true, it will POST).
 func (w *Wiki) call(params url.Values, post bool) (*simplejson.Json, error) {
 	params.Set("format", w.format)
 
@@ -109,6 +114,9 @@ func (w *Wiki) Post(params url.Values) (*simplejson.Json, error) {
 }
 
 // Login attempts to login using the provided username and password.
+// Usually, the token argument should be empty string when this method is used.
+// Login will automatically retrieve a login token and call itself with the
+// login token as the token parameter.
 func (w *Wiki) Login(username, password, token string) (bool, error) {
 	v := url.Values{}
 	v.Set("action", "login")
