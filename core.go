@@ -114,12 +114,12 @@ func (w *Wiki) Post(params url.Values) (*simplejson.Json, error) {
 }
 
 // Login attempts to login using the provided username and password.
-func (w *Wiki) Login(username, password string) (bool, error) {
+func (w *Wiki) Login(username, password string) error {
 
 	// By using a closure, we avoid requiring the public Login method to have a token parameter.
-	var loginFunc func(token string) (bool, error)
+	var loginFunc func(token string) error
 
-	loginFunc = func(token string) (bool, error) {
+	loginFunc = func(token string) error {
 		v := url.Values{}
 		v.Set("action", "login")
 		v.Set("lgname", username)
@@ -130,7 +130,7 @@ func (w *Wiki) Login(username, password string) (bool, error) {
 
 		resp, err := w.Post(v)
 		if err != nil {
-			return false, err
+			return err
 		}
 
 		if lgResult, _ := resp.Get("login").Get("result").String(); lgResult != "Success" {
@@ -138,11 +138,11 @@ func (w *Wiki) Login(username, password string) (bool, error) {
 				lgToken, _ := resp.Get("login").Get("token").String()
 				return loginFunc(lgToken)
 			} else {
-				return false, errors.New(lgResult)
+				return errors.New(lgResult)
 			}
 		}
 
-		return true, nil
+		return nil
 	}
 
 	return loginFunc("")
