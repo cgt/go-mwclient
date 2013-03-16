@@ -114,33 +114,38 @@ func (w *Wiki) Post(params url.Values) (*simplejson.Json, error) {
 }
 
 // Login attempts to login using the provided username and password.
-// Usually, the token argument should be empty string when this method is used.
-// Login will automatically retrieve a login token and call itself with the
-// login token as the token parameter.
-func (w *Wiki) Login(username, password, token string) (bool, error) {
-	v := url.Values{}
-	v.Set("action", "login")
-	v.Set("lgname", username)
-	v.Set("lgpassword", password)
-	if token != "" {
-		v.Set("lgtoken", token)
-	}
+func (w *Wiki) Login(username, password string) (bool, error) {
 
-	resp, err := w.Post(v)
-	if err != nil {
-		return false, err
-	}
+	// By using a closure, we avoid requiring the public Login method to have a token parameter.
+	var loginFunc func(token string) (bool, error)
 
-	if lgResult, _ := resp.Get("login").Get("result").String(); lgResult != "Success" {
-		if lgResult == "NeedToken" {
-			lgToken, _ := resp.Get("login").Get("token").String()
-			return w.Login(username, password, lgToken)
-		} else {
-			return false, errors.New(lgResult)
+	loginFunc = func(token string) (bool, error) {
+		v := url.Values{}
+		v.Set("action", "login")
+		v.Set("lgname", username)
+		v.Set("lgpassword", password)
+		if token != "" {
+			v.Set("lgtoken", token)
 		}
+
+		resp, err := w.Post(v)
+		if err != nil {
+			return false, err
+		}
+
+		if lgResult, _ := resp.Get("login").Get("result").String(); lgResult != "Success" {
+			if lgResult == "NeedToken" {
+				lgToken, _ := resp.Get("login").Get("token").String()
+				return loginFunc(lgToken)
+			} else {
+				return false, errors.New(lgResult)
+			}
+		}
+
+		return true, nil
 	}
 
-	return true, nil
+	return loginFunc("")
 }
 
 // Logout logs out. It does not take into account whether or not a user is actually
