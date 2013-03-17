@@ -120,10 +120,11 @@ func (w *Wiki) Login(username, password string) error {
 	var loginFunc func(token string) error
 
 	loginFunc = func(token string) error {
-		v := url.Values{}
-		v.Set("action", "login")
-		v.Set("lgname", username)
-		v.Set("lgpassword", password)
+		v := url.Values{
+			"action":     {"login"},
+			"lgname":     {username},
+			"lgpassword": {password},
+		}
 		if token != "" {
 			v.Set("lgtoken", token)
 		}
