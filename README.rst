@@ -10,6 +10,11 @@ actually called "mwclient", but I chose to prefix the repository's name with
 
     import mwc "github.com/cgtdk/go-mwclient"
 
+This library is still under development (albeit it is sporadic), so do not
+consider the API stable.
+
+Documentation is available at: http://godoc.org/github.com/cgtdk/go-mwclient
+
 Legal information
 =================
 The go-mwclient project (i.e., all of its source code, documentation, and other
