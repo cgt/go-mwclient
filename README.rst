@@ -8,7 +8,7 @@ actually called "mwclient", but I chose to prefix the repository's name with
 
 ::
 
-    import mwc "github.com/cgtdk/go-mwclient"
+    import "github.com/cgtdk/go-mwclient" // imports "mwclient"
 
 This library is still under development (albeit it is sporadic), so do not
 consider the API stable.
