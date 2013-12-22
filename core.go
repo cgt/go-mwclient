@@ -2,13 +2,13 @@
 package mwclient
 
 import (
-	"code.google.com/p/cookiejar"
 	"errors"
 	"fmt"
 	simplejson "github.com/bitly/go-simplejson"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 )
@@ -27,7 +27,7 @@ type Wiki struct {
 // invalid URL (as defined by the net/url package), then it will panic
 // with the error from url.Parse().
 func NewWiki(inUrl string) *Wiki {
-	cjar := cookiejar.NewJar(false)
+	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inUrl)
 	if err != nil {
 		panic(err) // Yes, this is bad, but so is using bad URLs and I don't want two return values.
