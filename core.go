@@ -16,23 +16,23 @@ import (
 // If you modify this package, please change the user agent.
 const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient) by meta:User:Cgtdk"
 
-type wiki struct {
+type Wiki struct {
 	client            *http.Client
 	cjar              *cookiejar.Jar
 	ApiUrl            *url.URL
 	format, UserAgent string
 }
 
-// NewWiki returns an initialized wiki object. If the provided API url is an
+// NewWiki returns an initialized Wiki object. If the provided API url is an
 // invalid URL (as defined by the net/url package), then it will panic
 // with the error from url.Parse().
-func NewWiki(inUrl string) *wiki {
+func NewWiki(inUrl string) *Wiki {
 	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inUrl)
 	if err != nil {
 		panic(err) // Yes, this is bad, but so is using bad URLs and I don't want two return values.
 	}
-	return &wiki{
+	return &Wiki{
 		&http.Client{nil, nil, cjar},
 		cjar,
 		apiurl,
@@ -43,7 +43,7 @@ func NewWiki(inUrl string) *wiki {
 
 // call makes a GET or POST request to the Mediawiki API (depending on whether
 // the post argument is true or false (if true, it will POST).
-func (w *wiki) call(params url.Values, post bool) (*simplejson.Json, error) {
+func (w *Wiki) call(params url.Values, post bool) (*simplejson.Json, error) {
 	params.Set("format", w.format)
 
 	// Make a POST or GET request depending on the "post" parameter.
@@ -104,17 +104,17 @@ func (w *wiki) call(params url.Values, post bool) (*simplejson.Json, error) {
 }
 
 // Get wraps the w.call method to make it do a GET request.
-func (w *wiki) Get(params url.Values) (*simplejson.Json, error) {
+func (w *Wiki) Get(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, false)
 }
 
 // Post wraps the w.call method to make it do a POST request.
-func (w *wiki) Post(params url.Values) (*simplejson.Json, error) {
+func (w *Wiki) Post(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, true)
 }
 
 // Login attempts to login using the provided username and password.
-func (w *wiki) Login(username, password string) error {
+func (w *Wiki) Login(username, password string) error {
 
 	// By using a closure, we avoid requiring the public Login method to have a token parameter.
 	var loginFunc func(token string) error
@@ -151,7 +151,7 @@ func (w *wiki) Login(username, password string) error {
 
 // Logout logs out. It does not take into account whether or not a user is actually
 // logged in (because it is irrelevant). Always returns true.
-func (w *wiki) Logout() bool {
+func (w *Wiki) Logout() bool {
 	w.Get(url.Values{"action": {"logout"}})
 	return true
 }
