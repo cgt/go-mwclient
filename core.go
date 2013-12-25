@@ -138,7 +138,7 @@ func ErrorCheck(json *simplejson.Json, err error) (*simplejson.Json, error, bool
 		apiok = false
 	}
 
-	if _, ok := json.CheckGet("warning"); ok {
+	if _, ok := json.CheckGet("warnings"); ok {
 		apiok = false
 	}
 
