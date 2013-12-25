@@ -108,9 +108,23 @@ func (w *Wiki) Get(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, false)
 }
 
+// GetCheck wraps the w.call method to make it do a GET request
+// and checks for API errors/warnings using the ErrorCheck function.
+// The returned boolean will be true if no API errors or warnings are found.
+func (w *Wiki) GetCheck(params url.Values) (*simplejson.Json, error, bool) {
+	return ErrorCheck(w.call(params, false))
+}
+
 // Post wraps the w.call method to make it do a POST request.
 func (w *Wiki) Post(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, true)
+}
+
+// PostCheck wraps the w.call method to make it do a POST request
+// and checks for API errors/warnings using the ErrorCheck function.
+// The returned boolean will be true if no API errors or warnings are found.
+func (w *Wiki) PostCheck(params url.Values) (*simplejson.Json, error, bool) {
+	return ErrorCheck(w.call(params, true))
 }
 
 // ErrorCheck checks for API errors and warnings, and returns false as its third
