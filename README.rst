@@ -27,7 +27,7 @@ Example
 
 	func main() {
 		// Make a Wiki object and specify the wiki's API URL.
-		w := mwclient.NewWiki("https://da.wikipedia.org/w/api.php")
+		w := mwclient.New("https://da.wikipedia.org/w/api.php")
 
 		// Log in.
 		err := w.Login("USERNAME", "PASSWORD")

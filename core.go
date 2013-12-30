@@ -27,7 +27,7 @@ type Wiki struct {
 // NewWiki returns an initialized Wiki object. If the provided API url is an
 // invalid URL (as defined by the net/url package), then it will panic
 // with the error from url.Parse().
-func NewWiki(inUrl string) *Wiki {
+func New(inUrl string) *Wiki {
 	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inUrl)
 	if err != nil {
