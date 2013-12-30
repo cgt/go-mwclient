@@ -127,7 +127,7 @@ func (w *Wiki) PostCheck(params url.Values) (*simplejson.Json, error, bool) {
 	return ErrorCheck(w.call(params, true))
 }
 
-// ErrorCheck checks for API errors, and returns false as its third
+// ErrorCheck checks for API errors and warnings, and returns false as its third
 // return value if any are found. Otherwise it returns true.
 // ErrorCheck does not modify the json and err parameters, but merely passes them through,
 // so it can be used to wrap the Post and Get methods.
@@ -135,6 +135,10 @@ func ErrorCheck(json *simplejson.Json, err error) (*simplejson.Json, error, bool
 	apiok := true
 
 	if _, ok := json.CheckGet("error"); ok {
+		apiok = false
+	}
+
+	if _, ok := json.CheckGet("warnings"); ok {
 		apiok = false
 	}
 
