@@ -12,6 +12,8 @@ actually called "mwclient", but I chose to prefix the repository's name with
 
 Documentation is available at: http://godoc.org/github.com/cgtdk/go-mwclient
 
+This library's API is subject to breaking change at any time for the time being.
+
 Example
 =======
 
