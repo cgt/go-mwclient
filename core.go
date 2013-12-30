@@ -24,7 +24,7 @@ type Wiki struct {
 	Tokens            map[string]string
 }
 
-// NewWiki returns an initialized Wiki object. If the provided API url is an
+// New returns an initialized Wiki object. If the provided API url is an
 // invalid URL (as defined by the net/url package), then it will panic
 // with the error from url.Parse().
 func New(inUrl string) *Wiki {
