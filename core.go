@@ -86,8 +86,18 @@ func NewClient(inUrl string) *Wiki {
 func (w *Wiki) call(params url.Values, post bool) (*simplejson.Json, error) {
 	callf := func() (*simplejson.Json, error) {
 		params.Set("format", w.format)
-		if w.maxlag.on {
-			params.Set("maxlag", w.maxlag.timeout)
+		var parameters string
+
+		// Appends the maxlag parameter to the end of the query as per https://www.mediawiki.org/wiki/API:Edit.
+		if params.Get("maxlag") != "" {
+			// User set maxlag parameter manually. Override preconfigured value.
+			maxlagParam := params.Get("maxlag")
+			params.Del("maxlag")
+			parameters = params.Encode() + "&maxlag=" + maxlagParam
+			log.Println(parameters)
+		} else {
+			parameters = params.Encode() + "&maxlag=" + w.maxlag.timeout
+			log.Println(parameters)
 		}
 
 		// Make a POST or GET request depending on the "post" parameter.
