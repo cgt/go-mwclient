@@ -45,3 +45,30 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	w.Tokens[tokenName] = token
 	return token, nil
 }
+
+// GetPage gets the content of a page specified by its pageid and returns it as a string.
+func (w *Client) GetPage(pageid string) (string, error) {
+	parameters := url.Values{
+		"action":  {"query"},
+		"prop":    {"revisions"},
+		"rvprop":  {"content"},
+		"pageids": {pageid},
+	}
+
+	resp, err := w.Get(parameters)
+	if err != nil {
+		return "", err
+	}
+
+	if _, ok := resp.GetPath("query", "pages", pageid).CheckGet("missing"); ok {
+		return "", fmt.Errorf("API could not retrieve page with pageid %s.", pageid)
+	}
+
+	content, err := resp.GetPath("query", "pages", pageid).Get("revisions").GetIndex(0).Get("*").String()
+	if err != nil {
+		// I don't know when this would ever happen, but just to be safe...
+		return "", fmt.Errorf("Unable to assert page content to string: %s", err)
+	}
+	return content, nil
+
+}
