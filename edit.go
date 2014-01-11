@@ -6,10 +6,10 @@ import (
 )
 
 // GetToken returns a specified token (and an error if this is not possible).
-// If the token is not already available in the Wiki.Tokens map,
+// If the token is not already available in the Client.Tokens map,
 // it will attempt to retrieve it via the API.
 // tokenName should be "edit" (or whatever), not "edittoken".
-func (w *Wiki) GetToken(tokenName string) (string, error) {
+func (w *Client) GetToken(tokenName string) (string, error) {
 	if _, ok := w.Tokens[tokenName]; ok {
 		return w.Tokens[tokenName], nil
 	}
