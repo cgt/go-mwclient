@@ -87,18 +87,12 @@ func NewClient(inUrl string) *Client {
 func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 	callf := func() (*simplejson.Json, error) {
 		params.Set("format", w.format)
-		var parameters string
 
-		// Appends the maxlag parameter to the end of the query as per https://www.mediawiki.org/wiki/API:Edit.
-		if params.Get("maxlag") != "" {
-			// User set maxlag parameter manually. Override preconfigured value.
-			maxlagParam := params.Get("maxlag")
-			params.Del("maxlag")
-			parameters = params.Encode() + "&maxlag=" + maxlagParam
-			log.Println(parameters)
-		} else {
-			parameters = params.Encode() + "&maxlag=" + w.Maxlag.Timeout
-			log.Println(parameters)
+		if w.Maxlag.On {
+			if params.Get("maxlag") == "" {
+				// User has not set maxlag param manually. Use configured value.
+				params.Set("maxlag", w.Maxlag.Timeout)
+			}
 		}
 
 		// Make a POST or GET request depending on the "post" parameter.
@@ -111,11 +105,10 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 
 		var req *http.Request
 		var err error
-		log.Println("Params: ", params.Encode())
 		if post {
-			req, err = http.NewRequest(httpMethod, w.ApiUrl.String(), strings.NewReader(params.Encode()))
+			req, err = http.NewRequest(httpMethod, w.ApiUrl.String(), strings.NewReader(URLEncode(params)))
 		} else {
-			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.ApiUrl.String(), params.Encode()), nil)
+			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.ApiUrl.String(), URLEncode(params)), nil)
 		}
 		if err != nil {
 			log.Printf("Unable to make request: %s\n", err)
