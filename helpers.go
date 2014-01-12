@@ -8,7 +8,7 @@ import (
 
 // URLEncode is a slightly modified version of Values.Encode() from net/url.
 // It encodes url.Values into URL encoded form, sorted by key, with the exception
-// of the key "maxlag", which will be appended to the end instead of being subject
+// of the key "token", which will be appended to the end instead of being subject
 // to regular sorting. This is done because that's what the MediaWiki API wants.
 func URLEncode(v url.Values) string {
 	if v == nil {
@@ -20,10 +20,10 @@ func URLEncode(v url.Values) string {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	maxlag := false
+	token := false
 	for _, k := range keys {
-		if k == "maxlag" {
-			maxlag = true
+		if k == "token" {
+			token = true
 			continue
 		}
 		vs := v[k]
@@ -36,8 +36,8 @@ func URLEncode(v url.Values) string {
 			buf.WriteString(url.QueryEscape(v))
 		}
 	}
-	if maxlag {
-		buf.WriteString("&" + url.QueryEscape("maxlag") + "=" + url.QueryEscape(v["maxlag"][0]))
+	if token {
+		buf.WriteString("&" + url.QueryEscape("token") + "=" + url.QueryEscape(v["token"][0]))
 	}
 	return buf.String()
 }
