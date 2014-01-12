@@ -19,41 +19,42 @@ Example
 
 ::
 
-	package main
+    package main
 
-	import (
-		"fmt"
-		"github.com/cgtdk/go-mwclient"
-		"net/url"
-	)
+    import (
+        "fmt"
+        "net/url"
 
-	func main() {
-		// Make a Wiki object and specify the wiki's API URL.
-		w := mwclient.New("https://da.wikipedia.org/w/api.php")
+        "github.com/cgtdk/go-mwclient"
+    )
 
-		// Log in.
-		err := w.Login("USERNAME", "PASSWORD")
-		if err != nil {
-			fmt.Println(err)
-		}
+    func main() {
+        // Make a Client object and specify the wiki's API URL.
+        w := mwclient.NewDefault("https://da.wikipedia.org/w/api.php")
 
-		// Specify parameters to send.
-		parameters := url.Values{
-			"action":  {"query"},
-			"list":    {"recentchanges"},
-			"rclimit": {"2"},
-			"rctype":  {"edit"},
-		}
+        // Log in.
+        err := w.Login("USERNAME", "PASSWORD")
+        if err != nil {
+            fmt.Println(err)
+        }
 
-		// Make the request.
-		resp, err := w.Get(parameters)
-		if err != nil {
-			fmt.Println(err)
-		}
+        // Specify parameters to send.
+        parameters := url.Values{
+            "action":  {"query"},
+            "list":    {"recentchanges"},
+            "rclimit": {"2"},
+            "rctype":  {"edit"},
+        }
 
-		// Print the *simplejson.Json object.
-		fmt.Println(resp)
-	}
+        // Make the request.
+        resp, err := w.Get(parameters)
+        if err != nil {
+            fmt.Println(err)
+        }
+
+        // Print the *simplejson.Json object.
+        fmt.Println(resp)
+    }
 
 Legal information
 =================

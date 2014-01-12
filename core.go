@@ -74,9 +74,9 @@ func New(inUrl string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *
 	}
 }
 
-// NewClient is a wrapper for New that passes nil as inMaxlag.
-// NewClient is meant for user clients (as opposed to bots); use New for bots.
-func NewClient(inUrl string) *Client {
+// NewDefault is a wrapper for New that passes nil as inMaxlag.
+// NewDefault is meant for user clients (as opposed to bot clients); use New for bots.
+func NewDefault(inUrl string) *Client {
 	return New(inUrl, false, "-1", 0)
 }
 
