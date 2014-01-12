@@ -5,6 +5,48 @@ import (
 	"net/url"
 )
 
+type Page struct {
+	Body      string
+	Timestamp string // Timestamp for the last revision of the page
+}
+
+// GetPage gets the content of a page specified by its pageid and the timestamp
+// of its most recent revision, and returns a *Page.
+func (w *Client) GetPage(pageID string) (*Page, error) {
+	parameters := url.Values{
+		"action":  {"query"},
+		"prop":    {"revisions"},
+		"rvprop":  {"content|timestamp"},
+		"pageids": {pageID},
+	}
+
+	resp, err := w.Get(parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if API could find the page
+	if _, ok := resp.GetPath("query", "pages", pageID).CheckGet("missing"); ok {
+		return nil, fmt.Errorf("API could not retrieve page with pageid %s.", pageID)
+	}
+
+	rv := resp.GetPath("query", "pages", pageID).Get("revisions").GetIndex(0)
+
+	content, err := rv.Get("*").String()
+	if err != nil {
+		// I don't know when this would ever happen, but just to be safe...
+		return nil, fmt.Errorf("Unable to assert page content to string: %s", err)
+	}
+
+	timestamp, err := rv.Get("timestamp").String()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to assert timestamp to string: %s", err)
+	}
+
+	return &Page{content, timestamp}, nil
+
+}
+
 // GetToken returns a specified token (and an error if this is not possible).
 // If the token is not already available in the Client.Tokens map,
 // it will attempt to retrieve it via the API.
@@ -44,31 +86,4 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	}
 	w.Tokens[tokenName] = token
 	return token, nil
-}
-
-// GetPage gets the content of a page specified by its pageid and returns it as a string.
-func (w *Client) GetPage(pageID string) (string, error) {
-	parameters := url.Values{
-		"action":  {"query"},
-		"prop":    {"revisions"},
-		"rvprop":  {"content"},
-		"pageids": {pageID},
-	}
-
-	resp, err := w.Get(parameters)
-	if err != nil {
-		return "", err
-	}
-
-	if _, ok := resp.GetPath("query", "pages", pageID).CheckGet("missing"); ok {
-		return "", fmt.Errorf("API could not retrieve page with pageid %s.", pageID)
-	}
-
-	content, err := resp.GetPath("query", "pages", pageID).Get("revisions").GetIndex(0).Get("*").String()
-	if err != nil {
-		// I don't know when this would ever happen, but just to be safe...
-		return "", fmt.Errorf("Unable to assert page content to string: %s", err)
-	}
-	return content, nil
-
 }
