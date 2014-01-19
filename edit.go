@@ -44,7 +44,6 @@ func (w *Client) GetPage(pageID string) (*Page, error) {
 	}
 
 	return &Page{content, timestamp}, nil
-
 }
 
 // GetToken returns a specified token (and an error if this is not possible).
