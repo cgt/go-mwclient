@@ -11,7 +11,7 @@ type Page struct {
 }
 
 // GetPage gets the content of a page specified by its pageid and the timestamp
-// of its most recent revision, and returns a *Page.
+// of its most recent revision, and returns a *Page and an error, if any.
 func (w *Client) GetPage(pageID string) (*Page, error) {
 	parameters := url.Values{
 		"action":  {"query"},
