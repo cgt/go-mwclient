@@ -5,14 +5,9 @@ import (
 	"net/url"
 )
 
-type Page struct {
-	Body      string
-	Timestamp string // Timestamp for the last revision of the page
-}
-
 // GetPage gets the content of a page specified by its pageid and the timestamp
-// of its most recent revision, and returns a *Page and an error, if any.
-func (w *Client) GetPage(pageID string) (*Page, error) {
+// of its most recent revision, and returns the content, the timestamp, and an error.
+func (w *Client) GetPage(pageID string) (string, string, error) {
 	parameters := url.Values{
 		"action":  {"query"},
 		"prop":    {"revisions"},
@@ -22,12 +17,12 @@ func (w *Client) GetPage(pageID string) (*Page, error) {
 
 	resp, err := w.Get(parameters)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
 	// Check if API could find the page
 	if _, ok := resp.GetPath("query", "pages", pageID).CheckGet("missing"); ok {
-		return nil, fmt.Errorf("API could not retrieve page with pageid %s.", pageID)
+		return "", "", fmt.Errorf("API could not retrieve page with pageid %s.", pageID)
 	}
 
 	rv := resp.GetPath("query", "pages", pageID).Get("revisions").GetIndex(0)
@@ -35,15 +30,15 @@ func (w *Client) GetPage(pageID string) (*Page, error) {
 	content, err := rv.Get("*").String()
 	if err != nil {
 		// I don't know when this would ever happen, but just to be safe...
-		return nil, fmt.Errorf("Unable to assert page content to string: %s", err)
+		return "", "", fmt.Errorf("Unable to assert page content to string: %s", err)
 	}
 
 	timestamp, err := rv.Get("timestamp").String()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to assert timestamp to string: %s", err)
+		return "", "", fmt.Errorf("Unable to assert timestamp to string: %s", err)
 	}
 
-	return &Page{content, timestamp}, nil
+	return content, timestamp, nil
 }
 
 // GetToken returns a specified token (and an error if this is not possible).
