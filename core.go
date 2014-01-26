@@ -186,6 +186,8 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 	return callf()
 }
 
+// ExtractAPIErrors extracts API errors and warnings from a given *simplejson.Json object
+// and returns them in a multierror.Errors object.
 func ExtractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error) {
 	// This shouldn't happen, but just in case...
 	if err != nil {
