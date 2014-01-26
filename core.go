@@ -145,10 +145,10 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 
 		// Handle maxlag
 		if resp.Header.Get("X-Database-Lag") != "" {
-			num, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
+			retryAfter, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
 			return nil, MaxLagError{
 				string(body),
-				num,
+				retryAfter,
 			}
 		}
 
