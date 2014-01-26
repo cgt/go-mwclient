@@ -14,6 +14,7 @@ import (
 	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
+	"github.com/joeshaw/multierror"
 )
 
 // If you modify this package, please change the user agent.
@@ -158,7 +159,7 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 			return nil, err
 		}
 
-		return js, nil
+		return ExtractAPIErrors(js, err)
 	}
 
 	if w.Maxlag.On {
@@ -185,28 +186,51 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 	return callf()
 }
 
-// Get wraps the w.call method to make it do a GET request.
-func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
-	return w.call(params, false)
-}
+func ExtractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error) {
+	// This shouldn't happen, but just in case...
+	if err != nil {
+		return nil, err
+	}
 
-// GetCheck wraps the w.call method to make it do a GET request
-// and checks for API errors/warnings using the ErrorCheck function.
-// The returned boolean will be true if no API errors or warnings are found.
-func (w *Client) GetCheck(params url.Values) (*simplejson.Json, error, bool) {
-	return ErrorCheck(w.call(params, false))
-}
+	// Check if there are any errors or warnings
+	var isAPIErrors, isAPIWarnings bool
+	if _, ok := json.CheckGet("error"); ok {
+		isAPIErrors = true
+	}
+	if _, ok := json.CheckGet("warnings"); ok {
+		isAPIWarnings = true
+	}
+	// If there are no errors or warnings, return with nil error.
+	if !isAPIErrors && !isAPIWarnings {
+		return json, nil
+	}
 
-// Post wraps the w.call method to make it do a POST request.
-func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
-	return w.call(params, true)
-}
+	// There are errors/warnings, extract and return them.
+	var apiErrors multierror.Errors
+	if isAPIErrors {
+		// Extract error code
+		errorCode, err := json.GetPath("error", "code").String()
+		if err != nil {
+			return json, fmt.Errorf("API returned malformed response. Unable to assert error code field to type string.")
+		}
 
-// PostCheck wraps the w.call method to make it do a POST request
-// and checks for API errors/warnings using the ErrorCheck function.
-// The returned boolean will be true if no API errors or warnings are found.
-func (w *Client) PostCheck(params url.Values) (*simplejson.Json, error, bool) {
-	return ErrorCheck(w.call(params, true))
+		// Extract error info
+		errorInfo, err := json.GetPath("error", "info").String()
+		if err != nil {
+			return json, fmt.Errorf("API returned malformed response. Unable to assert error info field to type string.")
+		}
+
+		apiErrors = append(apiErrors, fmt.Errorf("%s: %s", errorCode, errorInfo))
+	}
+
+	if isAPIWarnings {
+		// Extract warnings
+		for k, v := range json.Get("warnings").MustMap() {
+			apiErrors = append(apiErrors, fmt.Errorf("%s: %s", k, v.(map[string]interface{})["*"]))
+		}
+	}
+
+	return json, apiErrors.Err()
 }
 
 // ErrorCheck checks for API errors and warnings, and returns false as its third
@@ -225,6 +249,16 @@ func ErrorCheck(json *simplejson.Json, err error) (*simplejson.Json, error, bool
 	}
 
 	return json, err, apiok
+}
+
+// Get wraps the w.call method to make it do a GET request.
+func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
+	return w.call(params, false)
+}
+
+// Post wraps the w.call method to make it do a POST request.
+func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
+	return w.call(params, true)
 }
 
 // Login attempts to login using the provided username and password.
