@@ -21,15 +21,18 @@ import (
 const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient) by meta:User:Cgtdk"
 
 type (
+	// Client represents the API client.
 	Client struct {
 		httpc             *http.Client
 		cjar              *cookiejar.Jar
-		ApiUrl            *url.URL
+		APIURL            *url.URL
 		format, UserAgent string
 		Tokens            map[string]string
 		Maxlag            Maxlag
 	}
 
+	// Maxlag contains maxlag configuration for Client.
+	// See https://www.mediawiki.org/wiki/Manual:Maxlag_parameter
 	Maxlag struct {
 		On      bool   // If true, Client.Call will set the maxlag parameter.
 		Timeout string // The maxlag parameter to send to the server.
@@ -53,9 +56,9 @@ func (e MaxLagError) Error() string {
 // New returns an initialized Client object. If the provided API url is an
 // invalid URL (as defined by the net/url package), then it will panic
 // with the error from url.Parse().
-func New(inUrl string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *Client {
+func New(inURL string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *Client {
 	cjar, _ := cookiejar.New(nil)
-	apiurl, err := url.Parse(inUrl)
+	apiurl, err := url.Parse(inURL)
 	if err != nil {
 		panic(err) // Yes, this is bad, but so is using bad URLs and I don't want two return values.
 	}
@@ -63,7 +66,7 @@ func New(inUrl string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *
 	return &Client{
 		httpc:     &http.Client{nil, nil, cjar},
 		cjar:      cjar,
-		ApiUrl:    apiurl,
+		APIURL:    apiurl,
 		format:    "json",
 		UserAgent: DefaultUserAgent,
 		Tokens:    map[string]string{},
@@ -77,8 +80,8 @@ func New(inUrl string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *
 
 // NewDefault is a wrapper for New that passes nil as inMaxlag.
 // NewDefault is meant for user clients (as opposed to bot clients); use New for bots.
-func NewDefault(inUrl string) *Client {
-	return New(inUrl, false, "-1", 0)
+func NewDefault(inURL string) *Client {
+	return New(inURL, false, "-1", 0)
 }
 
 // call makes a GET or POST request to the Mediawiki API (depending on whether
@@ -107,9 +110,9 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 		var req *http.Request
 		var err error
 		if post {
-			req, err = http.NewRequest(httpMethod, w.ApiUrl.String(), strings.NewReader(URLEncode(params)))
+			req, err = http.NewRequest(httpMethod, w.APIURL.String(), strings.NewReader(URLEncode(params)))
 		} else {
-			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.ApiUrl.String(), URLEncode(params)), nil)
+			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), URLEncode(params)), nil)
 		}
 		if err != nil {
 			log.Printf("Unable to make request: %s\n", err)
@@ -123,7 +126,7 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 		}
 
 		// Set any old cookies on the request
-		for _, cookie := range w.cjar.Cookies(w.ApiUrl) {
+		for _, cookie := range w.cjar.Cookies(w.APIURL) {
 			req.AddCookie(cookie)
 		}
 
@@ -179,7 +182,7 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 			}
 		}
 
-		return nil, fmt.Errorf("The API is busy. Tried to perform request %d times unsuccessfully.", w.Maxlag.Retries)
+		return nil, fmt.Errorf("the API is busy. Tried to perform request %d times unsuccessfully", w.Maxlag.Retries)
 	}
 
 	// If maxlag is not enabled, just do the request regularly.
@@ -213,13 +216,13 @@ func ExtractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error
 		// Extract error code
 		errorCode, err := json.GetPath("error", "code").String()
 		if err != nil {
-			return json, fmt.Errorf("API returned malformed response. Unable to assert error code field to type string.")
+			return json, fmt.Errorf("API returned malformed response. Unable to assert error code field to type string")
 		}
 
 		// Extract error info
 		errorInfo, err := json.GetPath("error", "info").String()
 		if err != nil {
-			return json, fmt.Errorf("API returned malformed response. Unable to assert error info field to type string.")
+			return json, fmt.Errorf("API returned malformed response. Unable to assert error info field to type string")
 		}
 
 		apiErrors = append(apiErrors, fmt.Errorf("%s: %s", errorCode, errorInfo))
@@ -270,9 +273,8 @@ func (w *Client) Login(username, password string) error {
 			if lgResult == "NeedToken" {
 				lgToken, _ := resp.Get("login").Get("token").String()
 				return loginFunc(lgToken)
-			} else {
-				return errors.New(lgResult)
 			}
+			return errors.New(lgResult)
 		}
 
 		return nil

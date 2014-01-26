@@ -30,12 +30,12 @@ func (w *Client) GetPage(pageID string) (string, string, error) {
 	content, err := rv.Get("*").String()
 	if err != nil {
 		// I don't know when this would ever happen, but just to be safe...
-		return "", "", fmt.Errorf("Unable to assert page content to string: %s", err)
+		return "", "", fmt.Errorf("unable to assert page content to string: %s", err)
 	}
 
 	timestamp, err := rv.Get("timestamp").String()
 	if err != nil {
-		return "", "", fmt.Errorf("Unable to assert timestamp to string: %s", err)
+		return "", "", fmt.Errorf("unable to assert timestamp to string: %s", err)
 	}
 
 	return content, timestamp, nil
@@ -63,7 +63,7 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	token, err := resp.GetPath("tokens", tokenName+"token").String()
 	if err != nil {
 		// This really shouldn't happen.
-		return "", fmt.Errorf("Error occured while converting token to string: %s", err)
+		return "", fmt.Errorf("error occured while converting token to string: %s", err)
 	}
 	w.Tokens[tokenName] = token
 	return token, nil
