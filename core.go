@@ -233,24 +233,6 @@ func ExtractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error
 	return json, apiErrors.Err()
 }
 
-// ErrorCheck checks for API errors and warnings, and returns false as its third
-// return value if any are found. Otherwise it returns true.
-// ErrorCheck does not modify the json and err parameters, but merely passes them through,
-// so it can be used to wrap the Post and Get methods.
-func ErrorCheck(json *simplejson.Json, err error) (*simplejson.Json, error, bool) {
-	apiok := true
-
-	if _, ok := json.CheckGet("error"); ok {
-		apiok = false
-	}
-
-	if _, ok := json.CheckGet("warnings"); ok {
-		apiok = false
-	}
-
-	return json, err, apiok
-}
-
 // Get wraps the w.call method to make it do a GET request.
 func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, false)
