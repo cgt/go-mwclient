@@ -55,22 +55,9 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 		"type":   {tokenName},
 	}
 
-	resp, err, apiok := ErrorCheck(w.Get(parameters))
+	resp, err := w.Get(parameters)
 	if err != nil {
 		return "", err
-	}
-	if !apiok {
-		// Check for errors
-		if err, ok := resp.CheckGet("error"); ok {
-			newError := fmt.Errorf("%s: %s", err.Get("code").MustString(), err.Get("info").MustString())
-			return "", newError
-		}
-
-		// Check for warnings
-		if warnings, ok := resp.CheckGet("warnings"); ok {
-			newError := fmt.Errorf(warnings.GetPath("tokens", "*").MustString())
-			return "", newError
-		}
 	}
 
 	token, err := resp.GetPath("tokens", tokenName+"token").String()
