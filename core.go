@@ -298,7 +298,7 @@ func (w *Client) Login(username, password string) error {
 }
 
 // Logout logs out. It does not take into account whether or not a user is actually
-// logged in (because it is irrelevant). Always returns true.
+// logged in (because it is irrelevant).
 func (w *Client) Logout() {
 	w.Get(url.Values{"action": {"logout"}})
 }
