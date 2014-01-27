@@ -18,7 +18,7 @@ import (
 )
 
 // If you modify this package, please change the user agent.
-const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient) by meta:User:Cgtdk"
+const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient)"
 
 type (
 	// Client represents the API client.
@@ -56,11 +56,18 @@ func (e MaxLagError) Error() string {
 // New returns an initialized Client object. If the provided API url is an
 // invalid URL (as defined by the net/url package), then it will panic
 // with the error from url.Parse().
-func New(inURL string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *Client {
+func New(inURL, userAgent string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *Client {
 	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inURL)
 	if err != nil {
 		panic(err) // Yes, this is bad, but so is using bad URLs and I don't want two return values.
+	}
+
+	var ua string // user agent
+	if userAgent == "" || userAgent == " " {
+		ua = fmt.Sprintf("Unidentified client (%s)", DefaultUserAgent)
+	} else {
+		ua = fmt.Sprintf("%s (%s)", userAgent, DefaultUserAgent)
 	}
 
 	return &Client{
@@ -68,7 +75,7 @@ func New(inURL string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *
 		cjar:      cjar,
 		APIURL:    apiurl,
 		format:    "json",
-		UserAgent: DefaultUserAgent,
+		UserAgent: ua,
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
 			On:      maxlagOn,
@@ -80,8 +87,8 @@ func New(inURL string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *
 
 // NewDefault is a wrapper for New that passes nil as inMaxlag.
 // NewDefault is meant for user clients (as opposed to bot clients); use New for bots.
-func NewDefault(inURL string) *Client {
-	return New(inURL, false, "-1", 0)
+func NewDefault(inURL, userAgent string) *Client {
+	return New(inURL, userAgent, false, "-1", 0)
 }
 
 // call makes a GET or POST request to the Mediawiki API (depending on whether
