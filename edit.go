@@ -1,9 +1,78 @@
 package mwclient
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 )
+
+// CAPTCHAError represents the error returned by the API when it requires the client
+// to solve a CAPTCHA to perform the action requested.
+type CAPTCHAError struct {
+	Type string `json:"type"`
+	Mime string `json:"mime"`
+	ID   string `json:"id"`
+	URL  string `json:"url"`
+}
+
+func (e CAPTCHAError) Error() string {
+	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s", e.Type, e.Mime, e.ID, e.URL)
+}
+
+// Edit takes a map[string]string containing parameters for an edit action and
+// attempts to perform the edit. Edit will return nil if no errors are detected.
+// The editcfg map[string]string argument should contain parameters from:
+//	https://www.mediawiki.org/wiki/API:Edit#Parameters
+// Edit will set the 'action' and 'token' parameters automatically, but if the token
+// field in editcfg is non-empty, Edit will not override it.
+// Edit does not check editcfg for sanity.
+// editcfg example:
+//	map[string]string{
+//		"pageid":   "709377",
+//		"text":     "Complete new text for page",
+//		"summary":  "Take that, page!",
+//		"notminor": "",
+//	}
+func (w *Client) Edit(editcfg map[string]string) error {
+	// If edit token not set, obtain one from API or cache
+	if editcfg["token"] == "" {
+		editToken, err := w.GetToken("edit")
+		if err != nil {
+			return fmt.Errorf("unable to obtain edit token: %s", err)
+		}
+		editcfg["token"] = editToken
+	}
+
+	params := url.Values{}
+	for k, v := range editcfg {
+		params.Set(k, v)
+	}
+	params.Set("action", "edit")
+
+	resp, err := w.Post(params)
+	if err != nil {
+		return err
+	}
+
+	if resp.GetPath("edit", "result").MustString() != "Success" {
+		if captcha, ok := resp.Get("edit").CheckGet("captcha"); ok {
+			captchaBytes, err := captcha.Encode()
+			if err != nil {
+				return fmt.Errorf("error occured while creating error message: %s", err)
+			}
+			var captchaerr CAPTCHAError
+			err = json.Unmarshal(captchaBytes, &captchaerr)
+			if err != nil {
+				return fmt.Errorf("error occured while creating error message: %s", err)
+			}
+			return captchaerr
+		}
+
+		return fmt.Errorf("unrecognized response: %v", resp.Get("edit"))
+	}
+
+	return nil
+}
 
 // GetPage gets the content of a page specified by its pageid and the timestamp
 // of its most recent revision, and returns the content, the timestamp, and an error.
@@ -22,7 +91,7 @@ func (w *Client) GetPage(pageID string) (string, string, error) {
 
 	// Check if API could find the page
 	if _, ok := resp.GetPath("query", "pages", pageID).CheckGet("missing"); ok {
-		return "", "", fmt.Errorf("API could not retrieve page with pageid %s.", pageID)
+		return "", "", fmt.Errorf("API could not retrieve page with pageid %s", pageID)
 	}
 
 	rv := resp.GetPath("query", "pages", pageID).Get("revisions").GetIndex(0)
