@@ -29,8 +29,8 @@ Example
     )
 
     func main() {
-        // Make a Client object and specify the wiki's API URL.
-        w := mwclient.NewDefault("https://da.wikipedia.org/w/api.php")
+        // Make a Client object and specify the wiki's API URL and your user agent.
+        w := mwclient.NewDefault("https://da.wikipedia.org/w/api.php", "Username's wikibot")
 
         // Log in.
         err := w.Login("USERNAME", "PASSWORD")
