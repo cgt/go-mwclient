@@ -18,7 +18,7 @@ import (
 )
 
 // If you modify this package, please change the user agent.
-const DefaultUserAgent = "go-mwclient (https://github.com/cgtdk/go-mwclient)"
+const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 
 type (
 	// Client represents the API client.

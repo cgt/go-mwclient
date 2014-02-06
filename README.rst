@@ -8,9 +8,9 @@ actually called "mwclient", but I chose to prefix the repository's name with
 
 ::
 
-    import "github.com/cgtdk/go-mwclient" // imports "mwclient"
+    import "github.com/cgt/go-mwclient" // imports "mwclient"
 
-Documentation is available at: http://godoc.org/github.com/cgtdk/go-mwclient
+Documentation is available at: http://godoc.org/github.com/cgt/go-mwclient
 
 This library's API is subject to breaking change at any time for the time being.
 
@@ -25,7 +25,7 @@ Example
         "fmt"
         "net/url"
 
-        "github.com/cgtdk/go-mwclient"
+        "github.com/cgt/go-mwclient"
     )
 
     func main() {
