@@ -53,21 +53,20 @@ func (e maxLagError) Error() string {
 	return e.Message
 }
 
-// New returns an initialized Client object. If the provided API url is an
-// invalid URL (as defined by the net/url package), then it will panic
-// with the error from url.Parse().
-func New(inURL, userAgent string, maxlagOn bool, maxlagTimeout string, maxlagRetries int) *Client {
+// New returns a pointer to an initialized Client object. If the provided API URL
+// is invalid (as defined by the net/url package), then it will panic with the
+// error from url.Parse(). New disables maxlag by default. To enable it,
+// simply set Client.Maxlag.On to true.
+// The default timeout is 5 seconds and the default amount of retries is 5.
+func New(inURL, userAgent string) (*Client, error) {
 	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inURL)
 	if err != nil {
-		panic(err) // Yes, this is bad, but so is using bad URLs and I don't want two return values.
+		return nil, err
 	}
 
-	var ua string // user agent
 	if userAgent == "" || userAgent == " " {
-		ua = fmt.Sprintf("Unidentified client (%s)", DefaultUserAgent)
-	} else {
-		ua = fmt.Sprintf("%s (%s)", userAgent, DefaultUserAgent)
+		return nil, fmt.Errorf("userAgent parameter empty")
 	}
 
 	return &Client{
@@ -75,20 +74,14 @@ func New(inURL, userAgent string, maxlagOn bool, maxlagTimeout string, maxlagRet
 		cjar:      cjar,
 		APIURL:    apiurl,
 		format:    "json",
-		UserAgent: ua,
+		UserAgent: fmt.Sprintf("%s (%s)", userAgent, DefaultUserAgent),
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
-			On:      maxlagOn,
-			Timeout: maxlagTimeout,
-			Retries: maxlagRetries,
+			On:      false,
+			Timeout: "5",
+			Retries: 3,
 		},
-	}
-}
-
-// NewDefault is a wrapper for New that passes nil as inMaxlag.
-// NewDefault is meant for user clients (as opposed to bot clients); use New for bots.
-func NewDefault(inURL, userAgent string) *Client {
-	return New(inURL, userAgent, false, "-1", 0)
+	}, nil
 }
 
 // call makes a GET or POST request to the Mediawiki API (depending on whether

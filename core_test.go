@@ -9,7 +9,10 @@ import (
 
 func setup(handler func(w http.ResponseWriter, r *http.Request)) (*httptest.Server, *Client) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
-	client := NewDefault(server.URL, "go-mwclient test")
+	client, err := New(server.URL, "go-mwclient test")
+	if err != nil {
+		panic(err)
+	}
 
 	return server, client
 }
