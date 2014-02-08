@@ -40,16 +40,16 @@ type (
 	}
 )
 
-// MaxLagError is returned by the callf closure in the Client.call method when there is too much
-// lag on the MediaWiki site. MaxLagError contains a message from the server in the format
+// maxLagError is returned by the callf closure in the Client.call method when there is too much
+// lag on the MediaWiki site. maxLagError contains a message from the server in the format
 // "Waiting for $host: $lag seconds lagged\n" and an integer specifying how many seconds to wait
 // before trying the request again.
-type MaxLagError struct {
+type maxLagError struct {
 	Message string
 	Wait    int
 }
 
-func (e MaxLagError) Error() string {
+func (e maxLagError) Error() string {
 	return e.Message
 }
 
@@ -117,9 +117,9 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 		var req *http.Request
 		var err error
 		if post {
-			req, err = http.NewRequest(httpMethod, w.APIURL.String(), strings.NewReader(URLEncode(params)))
+			req, err = http.NewRequest(httpMethod, w.APIURL.String(), strings.NewReader(urlEncode(params)))
 		} else {
-			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), URLEncode(params)), nil)
+			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), urlEncode(params)), nil)
 		}
 		if err != nil {
 			log.Printf("Unable to make request: %s\n", err)
@@ -145,7 +145,7 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 			return nil, err
 		}
 
-		// Set any new cookies
+		// Store any new cookies
 		w.cjar.SetCookies(req.URL, resp.Cookies())
 
 		body, err := ioutil.ReadAll(resp.Body)
@@ -157,7 +157,7 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 		// Handle maxlag
 		if resp.Header.Get("X-Database-Lag") != "" {
 			retryAfter, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
-			return nil, MaxLagError{
+			return nil, maxLagError{
 				string(body),
 				retryAfter,
 			}
@@ -178,7 +178,7 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 
 			// Logic for handling maxlag errors. If err is nil or a different error,
 			// they are passed through in the else.
-			if lagerr, ok := err.(MaxLagError); ok {
+			if lagerr, ok := err.(maxLagError); ok {
 				// If there are no tries left, don't wait needlessly.
 				if tries < w.Maxlag.Retries-1 {
 					time.Sleep(time.Duration(lagerr.Wait) * time.Second)
@@ -245,12 +245,12 @@ func ExtractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error
 	return json, apiErrors.Err()
 }
 
-// Get wraps the w.call method to make it do a GET request.
+// Get performs a GET request with the specified parameters.
 func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, false)
 }
 
-// Post wraps the w.call method to make it do a POST request.
+// Post performs a POST request with the specified parameters.
 func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
 	return w.call(params, true)
 }

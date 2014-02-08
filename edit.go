@@ -6,16 +6,16 @@ import (
 	"net/url"
 )
 
-// CAPTCHAError represents the error returned by the API when it requires the client
+// captchaError represents the error returned by the API when it requires the client
 // to solve a CAPTCHA to perform the action requested.
-type CAPTCHAError struct {
+type captchaError struct {
 	Type string `json:"type"`
 	Mime string `json:"mime"`
 	ID   string `json:"id"`
 	URL  string `json:"url"`
 }
 
-func (e CAPTCHAError) Error() string {
+func (e captchaError) Error() string {
 	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s", e.Type, e.Mime, e.ID, e.URL)
 }
 
@@ -60,7 +60,7 @@ func (w *Client) Edit(editcfg map[string]string) error {
 			if err != nil {
 				return fmt.Errorf("error occured while creating error message: %s", err)
 			}
-			var captchaerr CAPTCHAError
+			var captchaerr captchaError
 			err = json.Unmarshal(captchaBytes, &captchaerr)
 			if err != nil {
 				return fmt.Errorf("error occured while creating error message: %s", err)

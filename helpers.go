@@ -10,7 +10,7 @@ import (
 // It encodes url.Values into URL encoded form, sorted by key, with the exception
 // of the key "token", which will be appended to the end instead of being subject
 // to regular sorting. This is done because that's what the MediaWiki API wants.
-func URLEncode(v url.Values) string {
+func urlEncode(v url.Values) string {
 	if v == nil {
 		return ""
 	}
