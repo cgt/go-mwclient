@@ -14,7 +14,6 @@ import (
 	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
-	"github.com/joeshaw/multierror"
 )
 
 // If you modify this package, please change the user agent.
@@ -39,19 +38,6 @@ type (
 		Retries int    // Specifies how many times to retry a request before returning with an error.
 	}
 )
-
-// maxLagError is returned by the callf closure in the Client.call method when there is too much
-// lag on the MediaWiki site. maxLagError contains a message from the server in the format
-// "Waiting for $host: $lag seconds lagged\n" and an integer specifying how many seconds to wait
-// before trying the request again.
-type maxLagError struct {
-	Message string
-	Wait    int
-}
-
-func (e maxLagError) Error() string {
-	return e.Message
-}
 
 // New returns a pointer to an initialized Client object. If the provided API URL
 // is invalid (as defined by the net/url package), then it will panic with the
@@ -187,55 +173,6 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 
 	// If maxlag is not enabled, just do the request regularly.
 	return callf()
-}
-
-// extractAPIErrors extracts API errors and warnings from a given *simplejson.Json object
-// and returns them in a multierror.Errors object.
-func extractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error) {
-	// This shouldn't happen, but just in case...
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if there are any errors or warnings
-	var isAPIErrors, isAPIWarnings bool
-	if _, ok := json.CheckGet("error"); ok {
-		isAPIErrors = true
-	}
-	if _, ok := json.CheckGet("warnings"); ok {
-		isAPIWarnings = true
-	}
-	// If there are no errors or warnings, return with nil error.
-	if !isAPIErrors && !isAPIWarnings {
-		return json, nil
-	}
-
-	// There are errors/warnings, extract and return them.
-	var apiErrors multierror.Errors
-	if isAPIErrors {
-		// Extract error code
-		errorCode, err := json.GetPath("error", "code").String()
-		if err != nil {
-			return json, fmt.Errorf("API returned malformed response. Unable to assert error code field to type string")
-		}
-
-		// Extract error info
-		errorInfo, err := json.GetPath("error", "info").String()
-		if err != nil {
-			return json, fmt.Errorf("API returned malformed response. Unable to assert error info field to type string")
-		}
-
-		apiErrors = append(apiErrors, fmt.Errorf("%s: %s", errorCode, errorInfo))
-	}
-
-	if isAPIWarnings {
-		// Extract warnings
-		for k, v := range json.Get("warnings").MustMap() {
-			apiErrors = append(apiErrors, fmt.Errorf("%s: %s", k, v.(map[string]interface{})["*"]))
-		}
-	}
-
-	return json, apiErrors.Err()
 }
 
 // Get performs a GET request with the specified parameters.

@@ -6,19 +6,6 @@ import (
 	"net/url"
 )
 
-// captchaError represents the error returned by the API when it requires the client
-// to solve a CAPTCHA to perform the action requested.
-type captchaError struct {
-	Type string `json:"type"`
-	Mime string `json:"mime"`
-	ID   string `json:"id"`
-	URL  string `json:"url"`
-}
-
-func (e captchaError) Error() string {
-	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s", e.Type, e.Mime, e.ID, e.URL)
-}
-
 // Edit takes a map[string]string containing parameters for an edit action and
 // attempts to perform the edit. Edit will return nil if no errors are detected.
 // The editcfg map[string]string argument should contain parameters from:
