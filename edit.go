@@ -61,14 +61,21 @@ func (w *Client) Edit(editcfg map[string]string) error {
 	return nil
 }
 
-// GetPage gets the content of a page specified by its pageid and the timestamp
-// of its most recent revision, and returns the content, the timestamp, and an error.
-func (w *Client) GetPage(pageID string) (string, string, error) {
+// getPage gets the content of a page and the timestamp of its most recent revision.
+// The page is specified either by its name or by its ID.
+// If the isName parameter is true, then the pageIDorName parameter will be
+// assumed to be a page name and vice versa.
+func (w *Client) getPage(pageIDorName string, isName bool) (string, string, error) {
 	parameters := url.Values{
-		"action":  {"query"},
-		"prop":    {"revisions"},
-		"rvprop":  {"content|timestamp"},
-		"pageids": {pageID},
+		"action": {"query"},
+		"prop":   {"revisions"},
+		"rvprop": {"content|timestamp"},
+	}
+
+	if isName {
+		parameters.Set("titles", pageIDorName)
+	} else {
+		parameters.Set("pageids", pageIDorName)
 	}
 
 	resp, err := w.Get(parameters)
@@ -76,12 +83,22 @@ func (w *Client) GetPage(pageID string) (string, string, error) {
 		return "", "", err
 	}
 
-	// Check if API could find the page
-	if _, ok := resp.GetPath("query", "pages", pageID).CheckGet("missing"); ok {
-		return "", "", fmt.Errorf("API could not retrieve page with pageid %s", pageID)
+	// The 'pages' field in the JSON response is not, as any sane API designer
+	// would have made it, an array. Instead, it contains one or more JSON objects
+	// named by their pageid. This is problematic when you only have the page name,
+	// and it is why these two ugly blocks of code are required.
+	pageMap, err := resp.GetPath("query", "pages").Map()
+	if err != nil {
+		return "", "", err
 	}
 
-	rv := resp.GetPath("query", "pages", pageID).Get("revisions").GetIndex(0)
+	var id string
+	for k := range pageMap {
+		// There should only be one item in the map.
+		id = k
+	}
+
+	rv := resp.GetPath("query", "pages", id).Get("revisions").GetIndex(0)
 
 	content, err := rv.Get("*").String()
 	if err != nil {
@@ -95,6 +112,18 @@ func (w *Client) GetPage(pageID string) (string, string, error) {
 	}
 
 	return content, timestamp, nil
+}
+
+// GetPageByName gets the content of a page (specified by its name) and
+// the timestamp of its most recent revision.
+func (w *Client) GetPageByName(pageName string) (string, string, error) {
+	return w.getPage(pageName, true)
+}
+
+// GetPageByID gets the content of a page (specified by its id) and
+// the timestamp of its most recent revision.
+func (w *Client) GetPageByID(pageID string) (string, string, error) {
+	return w.getPage(pageID, false)
 }
 
 // GetToken returns a specified token (and an error if this is not possible).
