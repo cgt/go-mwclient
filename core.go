@@ -189,6 +189,7 @@ func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
 func (w *Client) Login(username, password string) error {
 
 	// By using a closure, we avoid requiring the public Login method to have a token parameter.
+	// loginFunc must be predefined because it calls itself.
 	var loginFunc func(token string) error
 
 	loginFunc = func(token string) error {
