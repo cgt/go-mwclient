@@ -1,18 +1,21 @@
-===========
-go-mwclient
-===========
+=============
+ go-mwclient
+=============
 
-go-mwclient is a library for interacting with the MediaWiki API. The package is
-actually called "mwclient", but I chose to prefix the repository's name with
-"go-" to avoid confusion with similarly named libraries.
+go-mwclient is a library for interacting with the MediaWiki API. The package's
+actual name is "mwclient", but it is called "go-mwclient" to avoid confusion
+with similarly named libraries using other languages.
 
 ::
 
     import "github.com/cgt/go-mwclient" // imports "mwclient"
 
-Documentation is available at: http://godoc.org/github.com/cgt/go-mwclient
+There is no real documentation, so hopefully the doc comments and the example
+below are sufficient.
 
-This library's API is subject to breaking change at any time for the time being.
+Useful links:
+ - http://godoc.org/github.com/cgt/go-mwclient
+ - https://www.mediawiki.org/wiki/API:Main_page
 
 Example
 =======
