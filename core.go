@@ -71,11 +71,13 @@ func New(inURL, userAgent string) (*Client, error) {
 }
 
 // call makes a GET or POST request to the Mediawiki API (depending on whether
-// the post argument is true or false (if true, it will POST).
+// the post argument is true or false (if true, it will POST) and returns the
+// JSON response as a []byte.
 // call supports the maxlag parameter and will respect it if it is turned on
 // in the Client it operates on.
-func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
-	callf := func() (*simplejson.Json, error) {
+func (w *Client) call(params url.Values, post bool) ([]byte, error) {
+	// The main functionality in this method is in a closure to simplify maxlag handling.
+	callf := func() ([]byte, error) {
 		params.Set("format", w.format)
 
 		if w.Maxlag.On {
@@ -142,13 +144,8 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 			}
 		}
 
-		js, err := simplejson.NewJson(body)
-		if err != nil {
-			log.Printf("Error during JSON parsing: %s\n", err)
-			return nil, err
-		}
+		return body, nil
 
-		return extractAPIErrors(js, err)
 	}
 
 	if w.Maxlag.On {
@@ -175,20 +172,64 @@ func (w *Client) call(params url.Values, post bool) (*simplejson.Json, error) {
 	return callf()
 }
 
-// Get performs a GET request with the specified parameters.
+// callJSON wraps the call method and encodes the JSON response
+// as a *simplejson.Json object. Furthermore, any API errors/warnings are
+// extracted and returned as the error return value (unless an error occurs
+// during the API call or the parsing of the JSON response, in which case that
+// error will be returned and the *simplejson.Json return value will be nil).
+func (w *Client) callJSON(params url.Values, post bool) (*simplejson.Json, error) {
+	body, err := w.call(params, post)
+	if err != nil {
+		return nil, err
+	}
+
+	js, err := simplejson.NewJson(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return extractAPIErrors(js, err)
+}
+
+// Get performs a GET request with the specified parameters and returns the
+// response as a *simplejson.Json object.
+// Get will return any API errors and/or warnings (if no other errors occur)
+// as the error return value.
 func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
+	return w.callJSON(params, false)
+}
+
+// GetRaw performs a GET request with the specified parameters
+// and returns the raw JSON response as a []byte.
+// Unlike Get, GetRaw does not check for API errors/warnings.
+// GetRaw is useful when you want to decode the JSON into a struct for easier
+// and safer use.
+func (w *Client) GetRaw(params url.Values) ([]byte, error) {
 	return w.call(params, false)
 }
 
-// Post performs a POST request with the specified parameters.
+// Post performs a POST request with the specified parameters and returns the
+// response as a *simplejson.Json object.
+// Post will return any API errors and/or warnings (if no other errors occur)
+// as the error return value.
 func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
-	return w.call(params, true)
+	return w.callJSON(params, true)
+}
+
+// PostRaw performs a POST request with the specified parameters
+// and returns the raw JSON response as a []byte.
+// Unlike Post, PostRaw does not check for API errors/warnings.
+// PostRaw is useful when you want to decode the JSON into a struct for easier
+// and safer use.
+func (w *Client) PostRaw(params url.Values) ([]byte, error) {
+	return w.call(params, false)
 }
 
 // Login attempts to login using the provided username and password.
 func (w *Client) Login(username, password string) error {
 
-	// By using a closure, we avoid requiring the public Login method to have a token parameter.
+	// By using a closure, we avoid requiring the public Login method to have
+	// a token parameter while also avoiding repeating ourselves.
 	// loginFunc must be predefined because it calls itself.
 	var loginFunc func(token string) error
 
@@ -221,8 +262,7 @@ func (w *Client) Login(username, password string) error {
 	return loginFunc("")
 }
 
-// Logout logs out. It does not take into account whether or not a user is actually
-// logged in (because it is irrelevant).
+// Logout logs out. It does not take into account whether or not a user is actually logged in.
 func (w *Client) Logout() {
 	w.Get(url.Values{"action": {"logout"}})
 }
