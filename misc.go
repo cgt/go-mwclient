@@ -2,6 +2,7 @@ package mwclient
 
 import (
 	"bytes"
+	"fmt"
 	"net/url"
 	"sort"
 )
@@ -28,6 +29,10 @@ func (w *Client) GetPageID(pageName string) (string, error) {
 	for k := range pageMap {
 		// There should only be one item in the map.
 		id = k
+	}
+
+	if id == "-1" {
+		return "", fmt.Errorf("page '%s' not found", pageName)
 	}
 	return id, nil
 }
