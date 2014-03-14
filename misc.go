@@ -10,9 +10,10 @@ import (
 // GetPageID gets the pageid of a page specified by its name.
 func (w *Client) GetPageID(pageName string) (string, error) {
 	params := url.Values{
-		"action": {"query"},
-		"prop":   {"info"},
-		"titles": {pageName},
+		"action":       {"query"},
+		"prop":         {"info"},
+		"titles":       {pageName},
+		"indexpageids": {""},
 	}
 
 	resp, err := w.Get(params)
@@ -20,17 +21,11 @@ func (w *Client) GetPageID(pageName string) (string, error) {
 		return "", err
 	}
 
-	pageMap, err := resp.GetPath("query", "pages").Map()
+	pageIDs, err := resp.GetPath("query", "pageids").Array()
 	if err != nil {
 		return "", err
 	}
-
-	var id string
-	for k := range pageMap {
-		// There should only be one item in the map.
-		id = k
-	}
-
+	id := pageIDs[0].(string)
 	if id == "-1" {
 		return "", fmt.Errorf("page '%s' not found", pageName)
 	}
