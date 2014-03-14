@@ -56,12 +56,7 @@ func (e maxLagError) Error() string {
 
 // extractAPIErrors extracts API errors and warnings from a given *simplejson.Json object
 // and returns them together in a multierror.Multierror object.
-func extractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error) {
-	// This shouldn't happen, but just in case...
-	if err != nil {
-		return nil, err
-	}
-
+func extractAPIErrors(json *simplejson.Json) (*simplejson.Json, error) {
 	// Check if there are any errors or warnings
 	var isAPIErrors, isAPIWarnings bool
 	if _, ok := json.CheckGet("error"); ok {

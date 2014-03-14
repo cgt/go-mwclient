@@ -188,7 +188,7 @@ func (w *Client) callJSON(params url.Values, post bool) (*simplejson.Json, error
 		return nil, err
 	}
 
-	return extractAPIErrors(js, err)
+	return extractAPIErrors(js)
 }
 
 // Get performs a GET request with the specified parameters and returns the
