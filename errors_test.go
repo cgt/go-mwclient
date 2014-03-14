@@ -40,7 +40,7 @@ func TestExtractAPIErrors(t *testing.T) {
 			t.Fatalf("Invalid JSON for test %d: %s", i, err)
 		}
 
-		_, err = extractAPIErrors(js, nil)
+		_, err = extractAPIErrors(js)
 		if errtest.errAmount > 0 {
 			if uint8(len(err.(*multierror.MultiError).Errors)) != errtest.errAmount {
 				t.Errorf("(test:%d) %d errors returned, expected %d: %s", i, len(err.(*multierror.MultiError).Errors), errtest.errAmount, err)
