@@ -81,13 +81,13 @@ func extractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error
 		// Extract error code
 		errorCode, err := json.GetPath("error", "code").String()
 		if err != nil {
-			return json, fmt.Errorf("API returned malformed response. Unable to assert error code field to type string")
+			return json, fmt.Errorf("unable to assert error code field to type string")
 		}
 
 		// Extract error info
 		errorInfo, err := json.GetPath("error", "info").String()
 		if err != nil {
-			return json, fmt.Errorf("API returned malformed response. Unable to assert error info field to type string")
+			return json, fmt.Errorf("unable to assert error info field to type string")
 		}
 
 		apiErrors = append(apiErrors, APIError{errorCode, errorInfo})
@@ -95,7 +95,12 @@ func extractAPIErrors(json *simplejson.Json, err error) (*simplejson.Json, error
 
 	if isAPIWarnings {
 		// Extract warnings
-		for k, v := range json.Get("warnings").MustMap() {
+		warningsMap, err := json.Get("warnings").Map()
+		if err != nil {
+			return nil, fmt.Errorf("unable to assert 'warnings' field to type map[string]interface{}\n")
+		}
+
+		for k, v := range warningsMap {
 			warning := v.(map[string]interface{})["*"]
 
 			if strings.Contains(warning.(string), "\n") {
