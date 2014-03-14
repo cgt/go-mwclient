@@ -56,7 +56,11 @@ func New(inURL, userAgent string) (*Client, error) {
 	}
 
 	return &Client{
-		httpc:     &http.Client{nil, nil, cjar},
+		httpc: &http.Client{
+			Transport:     nil,
+			CheckRedirect: nil,
+			Jar:           cjar,
+		},
 		cjar:      cjar,
 		APIURL:    apiurl,
 		format:    "json",
