@@ -41,7 +41,12 @@ func (w *Client) Edit(editcfg map[string]string) error {
 		return err
 	}
 
-	if resp.GetPath("edit", "result").MustString() != "Success" {
+	editResult, err := resp.GetPath("edit", "result").String()
+	if err != nil {
+		return fmt.Errorf("unable to assert 'result' field to type string\n")
+	}
+
+	if editResult != "Success" {
 		if captcha, ok := resp.Get("edit").CheckGet("captcha"); ok {
 			captchaBytes, err := captcha.Encode()
 			if err != nil {
