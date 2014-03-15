@@ -70,11 +70,12 @@ func (w *Client) Edit(editcfg map[string]string) error {
 // The page is specified either by its name or by its ID.
 // If the isName parameter is true, then the pageIDorName parameter will be
 // assumed to be a page name and vice versa.
-func (w *Client) getPage(pageIDorName string, isName bool) (string, string, error) {
+func (w *Client) getPage(pageIDorName string, isName bool) (content string, timestamp string, err error) {
 	parameters := url.Values{
-		"action": {"query"},
-		"prop":   {"revisions"},
-		"rvprop": {"content|timestamp"},
+		"action":       {"query"},
+		"prop":         {"revisions"},
+		"rvprop":       {"content|timestamp"},
+		"indexpageids": {""},
 	}
 
 	if isName {
@@ -88,30 +89,21 @@ func (w *Client) getPage(pageIDorName string, isName bool) (string, string, erro
 		return "", "", err
 	}
 
-	// The 'pages' field in the JSON response is not, as any sane API designer
-	// would have made it, an array. Instead, it contains one or more JSON objects
-	// named by their pageid. This is problematic when you only have the page name,
-	// and it is why these two ugly blocks of code are required.
-	pageMap, err := resp.GetPath("query", "pages").Map()
+	pageIDs, err := resp.GetPath("query", "pageids").Array()
 	if err != nil {
 		return "", "", err
 	}
-
-	var id string
-	for k := range pageMap {
-		// There should only be one item in the map.
-		id = k
-	}
+	id := pageIDs[0].(string)
 
 	rv := resp.GetPath("query", "pages", id).Get("revisions").GetIndex(0)
 
-	content, err := rv.Get("*").String()
+	content, err = rv.Get("*").String()
 	if err != nil {
 		// I don't know when this would ever happen, but just to be safe...
 		return "", "", fmt.Errorf("unable to assert page content to string: %s", err)
 	}
 
-	timestamp, err := rv.Get("timestamp").String()
+	timestamp, err = rv.Get("timestamp").String()
 	if err != nil {
 		return "", "", fmt.Errorf("unable to assert timestamp to string: %s", err)
 	}
@@ -121,13 +113,13 @@ func (w *Client) getPage(pageIDorName string, isName bool) (string, string, erro
 
 // GetPageByName gets the content of a page (specified by its name) and
 // the timestamp of its most recent revision.
-func (w *Client) GetPageByName(pageName string) (string, string, error) {
+func (w *Client) GetPageByName(pageName string) (content string, timestamp string, err error) {
 	return w.getPage(pageName, true)
 }
 
 // GetPageByID gets the content of a page (specified by its id) and
 // the timestamp of its most recent revision.
-func (w *Client) GetPageByID(pageID string) (string, string, error) {
+func (w *Client) GetPageByID(pageID string) (content string, timestamp string, err error) {
 	return w.getPage(pageID, false)
 }
 
