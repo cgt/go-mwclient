@@ -64,7 +64,9 @@ Example
 
 Legal information
 =================
-The go-mwclient project (i.e., all of its source code, documentation, and other
-files) is placed in the public domain via Creative Commons CC0. See
-the COPYING file or http://creativecommons.org/publicdomain/zero/1.0/ for
-details.
+To the extent possible under law, the author(s) have dedicated all copyright and
+related and neighboring rights to this software to the public domain worldwide.
+This software is distributed without any warranty.
+
+You should have received a copy of the CC0 Public Domain Dedication along with
+this software. If not, see http://creativecommons.org/publicdomain/zero/1.0/.
