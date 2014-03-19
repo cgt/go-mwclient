@@ -22,12 +22,12 @@ const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 type (
 	// Client represents the API client.
 	Client struct {
-		httpc             *http.Client
-		cjar              *cookiejar.Jar
-		APIURL            *url.URL
-		format, UserAgent string
-		Tokens            map[string]string
-		Maxlag            Maxlag
+		httpc     *http.Client
+		cjar      *cookiejar.Jar
+		APIURL    *url.URL
+		UserAgent string
+		Tokens    map[string]string
+		Maxlag    Maxlag
 	}
 
 	// Maxlag contains maxlag configuration for Client.
@@ -63,7 +63,6 @@ func New(inURL, userAgent string) (*Client, error) {
 		},
 		cjar:      cjar,
 		APIURL:    apiurl,
-		format:    "json",
 		UserAgent: fmt.Sprintf("%s (%s)", userAgent, DefaultUserAgent),
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
@@ -82,7 +81,7 @@ func New(inURL, userAgent string) (*Client, error) {
 func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 	// The main functionality in this method is in a closure to simplify maxlag handling.
 	callf := func() ([]byte, error) {
-		params.Set("format", w.format)
+		params.Set("format", "json")
 
 		if w.Maxlag.On {
 			if params.Get("maxlag") == "" {
