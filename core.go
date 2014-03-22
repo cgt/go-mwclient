@@ -51,7 +51,7 @@ func New(inURL, userAgent string) (*Client, error) {
 		return nil, err
 	}
 
-	if userAgent == "" || userAgent == " " {
+	if strings.TrimSpace(userAgent) == "" {
 		return nil, fmt.Errorf("userAgent parameter empty")
 	}
 
