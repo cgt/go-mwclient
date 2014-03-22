@@ -3,9 +3,18 @@ package mwclient
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 )
+
+func (w *Client) DumpCookies() []*http.Cookie {
+	return w.cjar.Cookies(w.APIURL)
+}
+
+func (w *Client) LoadCookies(cookies []*http.Cookie) {
+	w.cjar.SetCookies(w.APIURL, cookies)
+}
 
 // GetPageID gets the pageid of a page specified by its name.
 func (w *Client) GetPageID(pageName string) (string, error) {
