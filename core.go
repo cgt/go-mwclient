@@ -19,6 +19,14 @@ import (
 // If you modify this package, please change the user agent.
 const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 
+type assertType uint8
+
+const (
+	AssertNone assertType = iota // used to disable API assertion
+	AssertUser                   // used to assert that the client is logged in
+	AssertBot                    // used to assert that the client is logged in as a bot
+)
+
 type (
 	// Client represents the API client.
 	Client struct {
@@ -28,22 +36,27 @@ type (
 		UserAgent string
 		Tokens    map[string]string
 		Maxlag    Maxlag
+		// If Assert is assigned the value of consts AssertUser or AssertBot,
+		// the 'assert' parameter will be added to API requests with
+		// the value 'user' or 'bot', respectively. To disable such assertions,
+		// set Assert to AssertNone (set by default by New()).
+		Assert assertType
 	}
 
 	// Maxlag contains maxlag configuration for Client.
 	// See https://www.mediawiki.org/wiki/Manual:Maxlag_parameter
 	Maxlag struct {
-		On      bool   // If true, Client.Call will set the maxlag parameter.
+		On      bool   // If true, API requests will set the maxlag parameter.
 		Timeout string // The maxlag parameter to send to the server.
 		Retries int    // Specifies how many times to retry a request before returning with an error.
 	}
 )
 
 // New returns a pointer to an initialized Client object. If the provided API URL
-// is invalid (as defined by the net/url package), then it will panic with the
-// error from url.Parse(). New disables maxlag by default. To enable it,
+// is invalid (as defined by the net/url package), then it will return nil and
+// the error from url.Parse(). New disables maxlag by default. To enable it,
 // simply set Client.Maxlag.On to true.
-// The default timeout is 5 seconds and the default amount of retries is 5.
+// The default timeout is 5 seconds and the default amount of retries is 3.
 func New(inURL, userAgent string) (*Client, error) {
 	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inURL)
@@ -70,6 +83,7 @@ func New(inURL, userAgent string) (*Client, error) {
 			Timeout: "5",
 			Retries: 3,
 		},
+		Assert: AssertNone,
 	}, nil
 }
 
@@ -87,6 +101,15 @@ func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 			if params.Get("maxlag") == "" {
 				// User has not set maxlag param manually. Use configured value.
 				params.Set("maxlag", w.Maxlag.Timeout)
+			}
+		}
+
+		if w.Assert > AssertNone {
+			switch w.Assert {
+			case AssertUser:
+				params.Set("assert", "user")
+			case AssertBot:
+				params.Set("assert", "bot")
 			}
 		}
 
