@@ -94,12 +94,14 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 		return "", "", err
 	}
 	id := pageIDs[0].(string)
+	if id == "0" || id == "-1" {
+		return "", "", fmt.Errorf("page missing (title/id: %s)", pageIDorName)
+	}
 
 	rv := resp.GetPath("query", "pages", id).Get("revisions").GetIndex(0)
 
 	content, err = rv.Get("*").String()
 	if err != nil {
-		// I don't know when this would ever happen, but just to be safe...
 		return "", "", fmt.Errorf("unable to assert page content to string: %s", err)
 	}
 
