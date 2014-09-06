@@ -23,7 +23,7 @@ import (
 func (w *Client) Edit(editcfg map[string]string) error {
 	// If edit token not set, obtain one from API or cache
 	if editcfg["token"] == "" {
-		editToken, err := w.GetToken("edit")
+		editToken, err := w.GetToken("csrf")
 		if err != nil {
 			return fmt.Errorf("unable to obtain edit token: %s", err)
 		}
@@ -133,7 +133,8 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	}
 
 	parameters := url.Values{
-		"action": {"tokens"},
+		"action": {"query"},
+		"meta":   {"tokens"},
 		"type":   {tokenName},
 	}
 
@@ -142,7 +143,7 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 		return "", err
 	}
 
-	token, err := resp.GetPath("tokens", tokenName+"token").String()
+	token, err := resp.GetPath("query", "tokens", tokenName+"token").String()
 	if err != nil {
 		// This really shouldn't happen.
 		return "", fmt.Errorf("error occured while converting token to string: %s", err)
