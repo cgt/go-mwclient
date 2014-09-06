@@ -39,7 +39,7 @@ Example
         }
 
         // Log in.
-        err := w.Login("USERNAME", "PASSWORD")
+        err = w.Login("USERNAME", "PASSWORD")
         if err != nil {
             fmt.Println(err)
         }
