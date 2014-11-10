@@ -103,10 +103,10 @@ func extractAPIErrors(json *simplejson.Json) (*simplejson.Json, error) {
 				// If so, they are separated by a newline.
 				// Split the warning string into two warnings and add them separately.
 				for _, warn := range strings.Split(warning.(string), "\n") {
-					apiErrors = append(apiErrors, fmt.Errorf("%s: %s", k, warn))
+					apiErrors = append(apiErrors, APIWarning{k, warn})
 				}
 			} else {
-				apiErrors = append(apiErrors, fmt.Errorf("%s: %s", k, warning))
+				apiErrors = append(apiErrors, APIWarning{k, warning.(string)})
 			}
 		}
 	}
