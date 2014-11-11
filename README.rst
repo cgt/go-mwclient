@@ -10,12 +10,17 @@ with similarly named libraries using other languages.
 
     import "github.com/cgt/go-mwclient" // imports "mwclient"
 
-There is no real documentation, so hopefully the doc comments and the example
-below are sufficient.
+go-mwclient is documented with doc comments and the example below.
 
 Useful links:
  - http://godoc.org/github.com/cgt/go-mwclient
  - https://www.mediawiki.org/wiki/API:Main_page
+
+API stability
+==============
+At this time the public API is not guaranteed to be stable. If I discover a
+better way of doing something that breaks backwards compatibility, I will
+break it.
 
 Example
 =======
