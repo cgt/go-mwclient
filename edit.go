@@ -23,11 +23,11 @@ import (
 func (w *Client) Edit(editcfg map[string]string) error {
 	// If edit token not set, obtain one from API or cache
 	if editcfg["token"] == "" {
-		editToken, err := w.GetToken("csrf")
+		csrfToken, err := w.GetToken("csrf")
 		if err != nil {
-			return fmt.Errorf("unable to obtain edit token: %s", err)
+			return fmt.Errorf("unable to obtain csrf token: %s", err)
 		}
-		editcfg["token"] = editToken
+		editcfg["token"] = csrfToken
 	}
 
 	params := url.Values{}
@@ -76,6 +76,7 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 		"prop":         {"revisions"},
 		"rvprop":       {"content|timestamp"},
 		"indexpageids": {""},
+		"rawcontinue":  {""},
 	}
 
 	if isName {
@@ -135,9 +136,10 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	}
 
 	parameters := url.Values{
-		"action": {"query"},
-		"meta":   {"tokens"},
-		"type":   {tokenName},
+		"action":      {"query"},
+		"meta":        {"tokens"},
+		"type":        {tokenName},
+		"rawcontinue": {""},
 	}
 
 	resp, err := w.Get(parameters)

@@ -23,6 +23,7 @@ func (w *Client) GetPageID(pageName string) (string, error) {
 		"prop":         {"info"},
 		"titles":       {pageName},
 		"indexpageids": {""},
+		"rawcontinue":  {""},
 	}
 
 	resp, err := w.Get(params)
