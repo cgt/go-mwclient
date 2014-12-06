@@ -129,8 +129,8 @@ func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), urlEncode(params)), nil)
 		}
 		if err != nil {
-			log.Printf("Unable to make request: %s\n", err)
-			return nil, err
+			return nil, fmt.Errorf("unable to create HTTP request (method: %s, params: %v): %v",
+				httpMethod, params, err)
 		}
 
 		// Set headers on request
@@ -146,19 +146,17 @@ func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 
 		// Make the request
 		resp, err := w.httpc.Do(req)
-		defer resp.Body.Close()
 		if err != nil {
-			log.Printf("Error during %s: %s\n", httpMethod, err)
-			return nil, err
+			return nil, fmt.Errorf("error occured during HTTP request: %v", err)
 		}
+		defer resp.Body.Close()
 
 		// Store any new cookies
 		w.cjar.SetCookies(req.URL, resp.Cookies())
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("Error reading from resp.Body: %s\n", err)
-			return nil, err
+			return nil, fmt.Errorf("unable to read HTTP response body: %v", err)
 		}
 
 		// Handle maxlag
