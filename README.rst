@@ -6,15 +6,22 @@ go-mwclient is a library for interacting with the MediaWiki API. The package's
 actual name is "mwclient", but it is called "go-mwclient" to avoid confusion
 with similarly named libraries using other languages.
 
+The canonical import path for this package is
+
 ::
 
-    import "github.com/cgt/go-mwclient" // imports "mwclient"
+    import cgt.name/pkg/go-mwclient // imports "mwclient"
 
-go-mwclient is documented with doc comments and the example below.
+Relevant links:
+ - GoDoc: http://godoc.org/cgt.name/pkg/go-mwclient
+ - MediaWiki API docs: https://www.mediawiki.org/wiki/API:Main_page
 
-Useful links:
- - http://godoc.org/github.com/cgt/go-mwclient
- - https://www.mediawiki.org/wiki/API:Main_page
+Installation
+============
+
+::
+
+    go get cgt.name/pkg/go-mwclient
 
 API stability
 ==============
@@ -33,7 +40,7 @@ Example
         "fmt"
         "net/url"
 
-        "github.com/cgt/go-mwclient"
+        "cgt.name/pkg/go-mwclient"
     )
 
     func main() {
