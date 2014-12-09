@@ -44,10 +44,12 @@ func (w *Client) GetPageID(pageName string) (string, error) {
 	return id, nil
 }
 
-// URLEncode is a slightly modified version of Values.Encode() from net/url.
+// urlEncode is a slightly modified version of Values.Encode() from net/url.
 // It encodes url.Values into URL encoded form, sorted by key, with the exception
 // of the key "token", which will be appended to the end instead of being subject
-// to regular sorting. This is done because that's what the MediaWiki API wants.
+// to regular sorting. This is done in accordance with MW API guidelines to
+// ensure that an action will not be executed if the query string has been cut
+// off for some reason.
 func urlEncode(v url.Values) string {
 	if v == nil {
 		return ""
