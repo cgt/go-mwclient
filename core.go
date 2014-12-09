@@ -21,9 +21,12 @@ const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 type assertType uint8
 
 const (
-	AssertNone assertType = iota // used to disable API assertion
-	AssertUser                   // used to assert that the client is logged in
-	AssertBot                    // used to assert that the client is logged in as a bot
+	// AssertNone is used to disable API assertion
+	AssertNone assertType = iota
+	// AssertUser is used to assert that the client is logged in
+	AssertUser
+	// AssertBot is used to assert that the client is logged in as a bot
+	AssertBot
 )
 
 type (

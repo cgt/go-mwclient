@@ -126,10 +126,25 @@ func (w *Client) GetPageByID(pageID string) (content string, timestamp string, e
 	return w.getPage(pageID, false)
 }
 
+// These consts represents MW API token names.
+// They are meant to be used with the GetToken method like so:
+// 	ClientInstance.GetToken(mwclient.CSRFToken)
+const (
+	CSRFToken                   = "csrf"
+	DeleteGlobalAccountToken    = "deleteglobalaccount"
+	PatrolToken                 = "patrol"
+	RollbackToken               = "rollback"
+	SetGlobalAccountStatusToken = "setglobalaccountstatus"
+	UserRightsToken             = "userrights"
+	WatchToken                  = "watch"
+)
+
 // GetToken returns a specified token (and an error if this is not possible).
 // If the token is not already available in the Client.Tokens map,
 // it will attempt to retrieve it via the API.
 // tokenName should be "edit" (or whatever), not "edittoken".
+// The token consts (e.g., mwclient.CSRFToken) should be used
+// as the tokenName argument.
 func (w *Client) GetToken(tokenName string) (string, error) {
 	if _, ok := w.Tokens[tokenName]; ok {
 		return w.Tokens[tokenName], nil
