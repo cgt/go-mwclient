@@ -194,7 +194,7 @@ func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 			}
 		}
 
-		return nil, fmt.Errorf("the API is busy. Tried to perform request %d times unsuccessfully", w.Maxlag.Retries)
+		return nil, ErrAPIBusy
 	}
 
 	// If maxlag is not enabled, just do the request regularly.
