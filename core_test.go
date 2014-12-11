@@ -66,24 +66,48 @@ func TestLogin(t *testing.T) {
 	if err := client.Login("", ""); err == nil {
 		t.Error("passed empty user. expected NoName error, but no error received")
 	} else {
-		t.Log(err)
+		if apiErr, ok := err.(APIError); ok {
+			if apiErr.Code != "NoName" {
+				t.Errorf("expected NoName error, received: %v", apiErr.Code)
+			} else {
+				t.Log(apiErr.Code)
+			}
+		}
 	}
 
 	if err := client.Login("username", ""); err == nil {
 		t.Error("passed empty password. expected EmptyPass error, but no error received")
 	} else {
-		t.Log(err)
+		if apiErr, ok := err.(APIError); ok {
+			if apiErr.Code != "EmptyPass" {
+				t.Errorf("expected EmptyPass error, received: %v", apiErr.Code)
+			} else {
+				t.Log(apiErr.Code)
+			}
+		}
 	}
 
-	if err := client.Login("badusername", ""); err == nil {
+	if err := client.Login("badusername", "password"); err == nil {
 		t.Error("passed bad user. expected NotExists error, but no error received")
 	} else {
-		t.Log(err)
+		if apiErr, ok := err.(APIError); ok {
+			if apiErr.Code != "NotExists" {
+				t.Errorf("expected NotExists error, received: %v", apiErr.Code)
+			} else {
+				t.Log(apiErr.Code)
+			}
+		}
 	}
 
 	if err := client.Login("username", "badpassword"); err == nil {
 		t.Error("passed bad password. expected WrongPass error, but no error received")
 	} else {
-		t.Log(err)
+		if apiErr, ok := err.(APIError); ok {
+			if apiErr.Code != "WrongPass" {
+				t.Errorf("expected WrongPass error, received: %v", apiErr.Code)
+			} else {
+				t.Log(apiErr.Code)
+			}
+		}
 	}
 }

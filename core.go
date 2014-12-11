@@ -1,7 +1,6 @@
 package mwclient
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -277,12 +276,20 @@ func (w *Client) Login(username, password string) error {
 			return err
 		}
 
-		if lgResult, _ := resp.Get("login").Get("result").String(); lgResult != "Success" {
+		lgResult, err := resp.Get("login").Get("result").String()
+		if err != nil {
+			return fmt.Errorf("invalid API response: unable to assert login result to string")
+		}
+
+		if lgResult != "Success" {
 			if lgResult == "NeedToken" {
-				lgToken, _ := resp.Get("login").Get("token").String()
+				lgToken, err := resp.Get("login").Get("token").String()
+				if err != nil {
+					return fmt.Errorf("invalid API response: unable to assert login token to string")
+				}
 				return loginFunc(lgToken)
 			}
-			return errors.New(lgResult)
+			return APIError{Code: lgResult}
 		}
 
 		return nil
