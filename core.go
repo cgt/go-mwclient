@@ -19,6 +19,7 @@ const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 
 type assertType uint8
 
+// These consts are used as enums for the Client types Assert field.
 const (
 	// AssertNone is used to disable API assertion
 	AssertNone assertType = iota
@@ -47,9 +48,12 @@ type (
 	// Maxlag contains maxlag configuration for Client.
 	// See https://www.mediawiki.org/wiki/Manual:Maxlag_parameter
 	Maxlag struct {
-		On      bool   // If true, API requests will set the maxlag parameter.
-		Timeout string // The maxlag parameter to send to the server.
-		Retries int    // Specifies how many times to retry a request before returning with an error.
+		// If true, API requests will set the maxlag parameter.
+		On bool
+		// The maxlag parameter to send to the server.
+		Timeout string
+		// Specifies how many times to retry a request before returning with an error.
+		Retries int
 	}
 )
 
