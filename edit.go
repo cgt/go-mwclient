@@ -99,14 +99,18 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 		return "", "", fmt.Errorf("page missing (title/id: %s)", pageIDorName)
 	}
 
-	rv := resp.GetPath("query", "pages", id).Get("revisions").GetIndex(0)
+	revs, ok := resp.GetPath("query", "pages", id).CheckGet("revisions")
+	if !ok {
+		return "", "", fmt.Errorf("path query.pages.%s.revisions missing from response", id)
+	}
+	revs = revs.GetIndex(0)
 
-	content, err = rv.Get("*").String()
+	content, err = revs.Get("*").String()
 	if err != nil {
 		return "", "", fmt.Errorf("unable to assert page content to string: %s", err)
 	}
 
-	timestamp, err = rv.Get("timestamp").String()
+	timestamp, err = revs.Get("timestamp").String()
 	if err != nil {
 		return "", "", fmt.Errorf("unable to assert timestamp to string: %s", err)
 	}
