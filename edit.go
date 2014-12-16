@@ -23,7 +23,7 @@ import (
 func (w *Client) Edit(editcfg map[string]string) error {
 	// If edit token not set, obtain one from API or cache
 	if editcfg["token"] == "" {
-		csrfToken, err := w.GetToken("csrf")
+		csrfToken, err := w.GetToken(CSRFToken)
 		if err != nil {
 			return fmt.Errorf("unable to obtain csrf token: %s", err)
 		}
