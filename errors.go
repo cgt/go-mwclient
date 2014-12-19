@@ -42,11 +42,6 @@ func (e captchaError) Error() string {
 	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s", e.Type, e.Mime, e.ID, e.URL)
 }
 
-// ErrAPIBusy is the error returned by an API call function when maxlag is
-// enabled, and the API responds that it is busy for each of the in
-// Client.Maxlag.Retries specified amount of retries.
-var ErrAPIBusy = errors.New("the API is too busy. Try again later.")
-
 // maxLagError is returned by the callf closure in the Client.call method when there is too much
 // lag on the MediaWiki site. maxLagError contains a message from the server in the format
 // "Waiting for $host: $lag seconds lagged\n" and an integer specifying how many seconds to wait
@@ -59,6 +54,15 @@ type maxLagError struct {
 func (e maxLagError) Error() string {
 	return e.Message
 }
+
+// ErrAPIBusy is the error returned by an API call function when maxlag is
+// enabled, and the API responds that it is busy for each of the in
+// Client.Maxlag.Retries specified amount of retries.
+var ErrAPIBusy = errors.New("the API is too busy. Try again later")
+
+// ErrNoArgs is returned by API call methods that take variadic arguments when
+// no arguments are passed.
+var ErrNoArgs = errors.New("no arguments passed")
 
 // extractAPIErrors extracts API errors and warnings from a given *simplejson.Json object
 // and returns them together in a multierror.Multierror object.
