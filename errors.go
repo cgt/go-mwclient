@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"cgt.name/pkg/multierror"
 	"github.com/bitly/go-simplejson"
-	"github.com/joeshaw/multierror"
 )
 
 // APIError represents a generic API error described by an error code

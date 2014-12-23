@@ -3,8 +3,8 @@ package mwclient
 import (
 	"testing"
 
+	"cgt.name/pkg/multierror"
 	"github.com/bitly/go-simplejson"
-	"github.com/joeshaw/multierror"
 )
 
 func TestExtractAPIErrors(t *testing.T) {
