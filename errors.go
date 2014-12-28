@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"cgt.name/pkg/multierror"
+	"cgt.name/pkg/go-mwclient/internal/multierror"
 	"github.com/bitly/go-simplejson"
 )
 
