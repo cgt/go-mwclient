@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"cgt.name/pkg/go-mwclient/params"
+
 	simplejson "github.com/bitly/go-simplejson"
 )
 
@@ -96,24 +98,24 @@ func New(inURL, userAgent string) (*Client, error) {
 // JSON response as a []byte.
 // call supports the maxlag parameter and will respect it if it is turned on
 // in the Client it operates on.
-func (w *Client) call(params url.Values, post bool) ([]byte, error) {
+func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 	// The main functionality in this method is in a closure to simplify maxlag handling.
 	callf := func() ([]byte, error) {
-		params.Set("format", "json")
+		p.Set("format", "json")
 
 		if w.Maxlag.On {
-			if params.Get("maxlag") == "" {
+			if p.Get("maxlag") == "" {
 				// User has not set maxlag param manually. Use configured value.
-				params.Set("maxlag", w.Maxlag.Timeout)
+				p.Set("maxlag", w.Maxlag.Timeout)
 			}
 		}
 
 		if w.Assert > AssertNone {
 			switch w.Assert {
 			case AssertUser:
-				params.Set("assert", "user")
+				p.Set("assert", "user")
 			case AssertBot:
-				params.Set("assert", "bot")
+				p.Set("assert", "bot")
 			}
 		}
 
@@ -128,13 +130,13 @@ func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 		var req *http.Request
 		var err error
 		if post {
-			req, err = http.NewRequest(httpMethod, w.APIURL.String(), strings.NewReader(urlEncode(params)))
+			req, err = http.NewRequest(httpMethod, w.APIURL.String(), strings.NewReader(p.Encode()))
 		} else {
-			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), urlEncode(params)), nil)
+			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), p.Encode()), nil)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("unable to create HTTP request (method: %s, params: %v): %v",
-				httpMethod, params, err)
+				httpMethod, p, err)
 		}
 
 		// Set headers on request
@@ -205,8 +207,8 @@ func (w *Client) call(params url.Values, post bool) ([]byte, error) {
 // extracted and returned as the error return value (unless an error occurs
 // during the API call or the parsing of the JSON response, in which case that
 // error will be returned and the *simplejson.Json return value will be nil).
-func (w *Client) callJSON(params url.Values, post bool) (*simplejson.Json, error) {
-	body, err := w.call(params, post)
+func (w *Client) callJSON(p params.Values, post bool) (*simplejson.Json, error) {
+	body, err := w.call(p, post)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +225,8 @@ func (w *Client) callJSON(params url.Values, post bool) (*simplejson.Json, error
 // response as a *simplejson.Json object.
 // Get will return any API errors and/or warnings (if no other errors occur)
 // as the error return value.
-func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
-	return w.callJSON(params, false)
+func (w *Client) Get(p params.Values) (*simplejson.Json, error) {
+	return w.callJSON(p, false)
 }
 
 // GetRaw performs a GET request with the specified parameters
@@ -232,16 +234,16 @@ func (w *Client) Get(params url.Values) (*simplejson.Json, error) {
 // Unlike Get, GetRaw does not check for API errors/warnings.
 // GetRaw is useful when you want to decode the JSON into a struct for easier
 // and safer use.
-func (w *Client) GetRaw(params url.Values) ([]byte, error) {
-	return w.call(params, false)
+func (w *Client) GetRaw(p params.Values) ([]byte, error) {
+	return w.call(p, false)
 }
 
 // Post performs a POST request with the specified parameters and returns the
 // response as a *simplejson.Json object.
 // Post will return any API errors and/or warnings (if no other errors occur)
 // as the error return value.
-func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
-	return w.callJSON(params, true)
+func (w *Client) Post(p params.Values) (*simplejson.Json, error) {
+	return w.callJSON(p, true)
 }
 
 // PostRaw performs a POST request with the specified parameters
@@ -249,8 +251,8 @@ func (w *Client) Post(params url.Values) (*simplejson.Json, error) {
 // Unlike Post, PostRaw does not check for API errors/warnings.
 // PostRaw is useful when you want to decode the JSON into a struct for easier
 // and safer use.
-func (w *Client) PostRaw(params url.Values) ([]byte, error) {
-	return w.call(params, false)
+func (w *Client) PostRaw(p params.Values) ([]byte, error) {
+	return w.call(p, false)
 }
 
 // Login attempts to login using the provided username and password.
@@ -262,10 +264,10 @@ func (w *Client) Login(username, password string) error {
 	var loginFunc func(token string) error
 
 	loginFunc = func(token string) error {
-		v := url.Values{
-			"action":     {"login"},
-			"lgname":     {username},
-			"lgpassword": {password},
+		v := params.Values{
+			"action":     "login",
+			"lgname":     username,
+			"lgpassword": password,
 		}
 		if token != "" {
 			v.Set("lgtoken", token)
@@ -301,5 +303,5 @@ func (w *Client) Login(username, password string) error {
 // Logout sends a logout request to the API.
 // It does not take into account whether or not a user is actually logged in.
 func (w *Client) Logout() {
-	w.Get(url.Values{"action": {"logout"}})
+	w.Get(params.Values{"action": "logout"})
 }

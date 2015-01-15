@@ -3,7 +3,8 @@ package mwclient
 import (
 	"encoding/json"
 	"fmt"
-	"net/url"
+
+	"cgt.name/pkg/go-mwclient/params"
 )
 
 // Edit takes a map[string]string containing parameters for an edit action and
@@ -30,13 +31,13 @@ func (w *Client) Edit(editcfg map[string]string) error {
 		editcfg["token"] = csrfToken
 	}
 
-	params := url.Values{}
+	p := params.Values{}
 	for k, v := range editcfg {
-		params.Set(k, v)
+		p.Set(k, v)
 	}
-	params.Set("action", "edit")
+	p.Set("action", "edit")
 
-	resp, err := w.Post(params)
+	resp, err := w.Post(p)
 	if err != nil {
 		return err
 	}
@@ -71,21 +72,21 @@ func (w *Client) Edit(editcfg map[string]string) error {
 // If the isName parameter is true, then the pageIDorName parameter will be
 // assumed to be a page name and vice versa.
 func (w *Client) getPage(pageIDorName string, isName bool) (content string, timestamp string, err error) {
-	parameters := url.Values{
-		"action":       {"query"},
-		"prop":         {"revisions"},
-		"rvprop":       {"content|timestamp"},
-		"indexpageids": {""},
-		"rawcontinue":  {""},
+	p := params.Values{
+		"action":       "query",
+		"prop":         "revisions",
+		"rvprop":       "content|timestamp",
+		"indexpageids": "",
+		"rawcontinue":  "",
 	}
 
 	if isName {
-		parameters.Set("titles", pageIDorName)
+		p.Set("titles", pageIDorName)
 	} else {
-		parameters.Set("pageids", pageIDorName)
+		p.Set("pageids", pageIDorName)
 	}
 
-	resp, err := w.Get(parameters)
+	resp, err := w.Get(p)
 	if err != nil {
 		return "", "", err
 	}
@@ -154,14 +155,14 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 		return w.Tokens[tokenName], nil
 	}
 
-	parameters := url.Values{
-		"action":      {"query"},
-		"meta":        {"tokens"},
-		"type":        {tokenName},
-		"rawcontinue": {""},
+	p := params.Values{
+		"action":      "query",
+		"meta":        "tokens",
+		"type":        tokenName,
+		"rawcontinue": "",
 	}
 
-	resp, err := w.Get(parameters)
+	resp, err := w.Get(p)
 	if err != nil {
 		return "", err
 	}
