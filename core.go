@@ -18,7 +18,7 @@ const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 
 type assertType uint8
 
-// These consts are used as enums for the Client types Assert field.
+// These consts are used as enums for the Client type's Assert field.
 const (
 	// AssertNone is used to disable API assertion
 	AssertNone assertType = iota
