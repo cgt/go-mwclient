@@ -7,34 +7,30 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 )
 
-// Edit takes a map[string]string containing parameters for an edit action and
+// Edit takes a params.Values containing parameters for an edit action and
 // attempts to perform the edit. Edit will return nil if no errors are detected.
-// The editcfg map[string]string argument should contain parameters from:
+// The p (params.Values) argument should contain parameters from:
 //	https://www.mediawiki.org/wiki/API:Edit#Parameters
 // Edit will set the 'action' and 'token' parameters automatically, but if the token
-// field in editcfg is non-empty, Edit will not override it.
-// Edit does not check editcfg for sanity.
-// editcfg example:
-//	map[string]string{
+// field in p is non-empty, Edit will not override it.
+// Edit does not check p for sanity.
+// p example:
+//	params.Values{
 //		"pageid":   "709377",
 //		"text":     "Complete new text for page",
 //		"summary":  "Take that, page!",
 //		"notminor": "",
 //	}
-func (w *Client) Edit(editcfg map[string]string) error {
+func (w *Client) Edit(p params.Values) error {
 	// If edit token not set, obtain one from API or cache
-	if editcfg["token"] == "" {
+	if p["token"] == "" {
 		csrfToken, err := w.GetToken(CSRFToken)
 		if err != nil {
 			return fmt.Errorf("unable to obtain csrf token: %s", err)
 		}
-		editcfg["token"] = csrfToken
+		p["token"] = csrfToken
 	}
 
-	p := params.Values{}
-	for k, v := range editcfg {
-		p.Set(k, v)
-	}
 	p.Set("action", "edit")
 
 	resp, err := w.Post(p)
