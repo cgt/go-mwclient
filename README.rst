@@ -38,9 +38,9 @@ Example
 
     import (
         "fmt"
-        "net/url"
 
         "cgt.name/pkg/go-mwclient"
+        "cgt.name/pkg/go-mwclient/params"
     )
 
     func main() {
@@ -57,11 +57,12 @@ Example
         }
 
         // Specify parameters to send.
-        parameters := url.Values{
-            "action":  {"query"},
-            "list":    {"recentchanges"},
-            "rclimit": {"2"},
-            "rctype":  {"edit"},
+        parameters := params.Values{
+            "action":   "query",
+            "list":     "recentchanges",
+            "rclimit":  "2",
+            "rctype":   "edit",
+            "continue": "",
         }
 
         // Make the request.
