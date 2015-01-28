@@ -123,3 +123,29 @@ func extractAPIErrors(json *simplejson.Json) (*simplejson.Json, error) {
 
 	return json, apiErrors.Err()
 }
+
+// IsAPIErr checks if an error is a multierror containing only `APIError`s
+// and `APIWarning`s, as returned by Client.Get(Raw)() and Client.Post(Raw)().
+// Useful for avoiding boilerplate when checking if the returned error is
+// an API error/warning or some other error (probably a net or HTTP err).
+func IsAPIErr(err error) bool {
+	// Please avert your eyes.
+	// This was easier than refactoring.
+	switch e := err.(type) {
+	case *multierror.MultiError:
+		for _, merr := range e.Errors {
+			var apierr, apiwarn = false, false
+			switch merr.(type) {
+			case APIError:
+				apierr = true
+			case APIWarning:
+				apiwarn = true
+			}
+			if !(apierr || apiwarn) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}

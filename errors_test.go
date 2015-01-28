@@ -1,6 +1,7 @@
 package mwclient
 
 import (
+	"errors"
 	"testing"
 
 	"cgt.name/pkg/go-mwclient/multierror"
@@ -53,6 +54,54 @@ func TestExtractAPIErrors(t *testing.T) {
 			} else {
 				t.Logf("(test:%d) OK", i)
 			}
+		}
+	}
+}
+
+func TestIsAPIErr(t *testing.T) {
+	errs := []struct {
+		errs     error
+		expected bool
+	}{
+		{
+			errs:     multierror.Errors{APIError{}}.Err(),
+			expected: true,
+		},
+		{
+			errs:     multierror.Errors{APIWarning{}}.Err(),
+			expected: true,
+		},
+		{
+			errs:     multierror.Errors{APIError{}, APIWarning{}}.Err(),
+			expected: true,
+		},
+		{
+			errs:     multierror.Errors{errors.New("not API err/warn")}.Err(),
+			expected: false,
+		},
+		{
+			errs:     multierror.Errors{APIError{}, errors.New("other")}.Err(),
+			expected: false,
+		},
+		{
+			errs: multierror.Errors{
+				errors.New("other"),
+				APIError{},
+				APIWarning{},
+			}.Err(),
+			expected: false,
+		},
+		{
+			errs:     errors.New("not even a multierr"),
+			expected: false,
+		},
+	}
+
+	for i, errtest := range errs {
+		got := IsAPIErr(errtest.errs)
+		if got != errtest.expected {
+			t.Errorf("(test %d) Expected %v, got %v. Err: %v",
+				i, errtest.expected, got, errtest.errs.Error())
 		}
 	}
 }
