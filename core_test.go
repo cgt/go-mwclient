@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"cgt.name/pkg/go-mwclient/params"
 )
 
 func setup(handler func(w http.ResponseWriter, r *http.Request)) (*httptest.Server, *Client) {
@@ -109,5 +111,76 @@ func TestLogin(t *testing.T) {
 				t.Log(apiErr.Code)
 			}
 		}
+	}
+}
+
+func TestMaxlagOn(t *testing.T) {
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			t.Fatal("Bad test parameters")
+		}
+
+		if r.Form.Get("maxlag") == "" {
+			t.Fatalf("maxlag param not set. Params: %s", r.Form.Encode())
+		}
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	p := params.Values{}
+	client.Maxlag.On = true
+	client.call(p, false)
+}
+
+func TestMaxlagOff(t *testing.T) {
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			t.Fatal("Bad test parameters")
+		}
+
+		if r.Form.Get("maxlag") != "" {
+			t.Fatalf("maxlag param set. Params: %s", r.Form.Encode())
+		}
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	p := params.Values{}
+	// Maxlag is off by default
+	client.call(p, false)
+}
+
+func TestMaxlagRetryFail(t *testing.T) {
+	// There's sleep calls in this test
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			t.Fatal("Bad test parameters")
+		}
+		if r.Form.Get("maxlag") == "" {
+			t.Fatalf("maxlag param not set. Params: %s", r.Form.Encode())
+		}
+
+		header := w.Header()
+		header.Set("X-Database-Lag", "10") // Value does not matter
+		header.Set("Retry-After", "1")     // Value *does* matter
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	p := params.Values{}
+	client.Maxlag.On = true
+	_, err := client.call(p, false)
+	if err != ErrAPIBusy {
+		t.Fatalf("Expected ErrAPIBusy error from call(), got: %v", err)
 	}
 }
