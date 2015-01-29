@@ -114,6 +114,40 @@ func TestLogin(t *testing.T) {
 	}
 }
 
+func TestLoginToken(t *testing.T) {
+	loginHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			t.Fatal("Bad test parameters")
+		}
+
+		lgtoken := "7aaaf636d99d46cf2656561c5d099ad7"
+
+		if r.PostForm.Get("lgtoken") == "" {
+			fmt.Fprintf(w,
+				`{"login":{"result":"NeedToken","token":"%s","cookieprefix":"dawiki","sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
+				lgtoken)
+		} else {
+			if got := r.PostForm.Get("lgtoken"); got == lgtoken {
+				fmt.Fprintf(w,
+					`{"login":{"result":"Success","lguserid":1,"lgusername":"username","lgtoken":"%s","cookieprefix":"dawiki","sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
+					lgtoken)
+			} else {
+				t.Fatalf("sent lgtoken '%s', got '%s'", lgtoken, got)
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	}
+
+	server, client := setup(loginHandler)
+	defer server.Close()
+
+	if err := client.Login("username", "password"); err != nil {
+		t.Errorf("Login() returned err: %v", err)
+	}
+}
+
 func TestMaxlagOn(t *testing.T) {
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
