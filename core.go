@@ -102,6 +102,7 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 	// The main functionality in this method is in a closure to simplify maxlag handling.
 	callf := func() ([]byte, error) {
 		p.Set("format", "json")
+		p.Set("utf8", "")
 
 		if w.Maxlag.On {
 			if p.Get("maxlag") == "" {
