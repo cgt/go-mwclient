@@ -2,13 +2,19 @@ package mwclient
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"cgt.name/pkg/go-mwclient/params"
 )
 
+var ErrEditNoChange = errors.New("edit successful, but did not change page")
+
 // Edit takes a params.Values containing parameters for an edit action and
 // attempts to perform the edit. Edit will return nil if no errors are detected.
+// If the edit was successful, but did not result in a change to the page
+// (i.e., the new text was identical to the current text)
+// then ErrEditNoChange is returned.
 // The p (params.Values) argument should contain parameters from:
 //	https://www.mediawiki.org/wiki/API:Edit#Parameters
 // Edit will set the 'action' and 'token' parameters automatically, but if the token
@@ -58,6 +64,10 @@ func (w *Client) Edit(p params.Values) error {
 		}
 
 		return fmt.Errorf("unrecognized response: %v", resp.Get("edit"))
+	}
+
+	if _, ok := resp.Get("edit").CheckGet("nochange"); ok {
+		return ErrEditNoChange
 	}
 
 	return nil
