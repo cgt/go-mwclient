@@ -83,7 +83,7 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 		"prop":         "revisions",
 		"rvprop":       "content|timestamp",
 		"indexpageids": "",
-		"rawcontinue":  "",
+		"continue":     "",
 	}
 
 	if isName {
@@ -162,10 +162,10 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	}
 
 	p := params.Values{
-		"action":      "query",
-		"meta":        "tokens",
-		"type":        tokenName,
-		"rawcontinue": "",
+		"action":   "query",
+		"meta":     "tokens",
+		"type":     tokenName,
+		"continue": "",
 	}
 
 	resp, err := w.Get(p)
