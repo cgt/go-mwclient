@@ -8,6 +8,8 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 )
 
+// ErrEditNoChange is returned by Client.Edit() when an edit did not change
+// a page but was otherwise successful.
 var ErrEditNoChange = errors.New("edit successful, but did not change page")
 
 // Edit takes a params.Values containing parameters for an edit action and

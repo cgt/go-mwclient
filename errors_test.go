@@ -1,107 +1,77 @@
 package mwclient
 
 import (
-	"errors"
 	"testing"
 
-	"cgt.name/pkg/go-mwclient/multierror"
 	"github.com/bitly/go-simplejson"
+)
+
+type ErrorType int
+
+const (
+	Eror ErrorType = iota
+	Warn
+	None
 )
 
 func TestExtractAPIErrors(t *testing.T) {
 	var errtests = []struct {
-		jsonInput []byte
-		errAmount uint8
+		jsonInput  []byte
+		testType   ErrorType
+		warnAmount int
 	}{
 		{
 			[]byte(`{"servedby":"mw1197","error":{"code":"nouser","info":"The user parameter must be set"}}`),
-			1,
+			Eror,
+			0,
 		},
 		{
 			[]byte(`{"servedby":"mw1204","error":{"code":"notoken","info":"The token parameter must be set"}}`),
-			1,
+			Eror,
+			0,
 		},
 		{
 			[]byte(`{"warnings":{"tokens":{"*":"Action 'deleteglobalaccount' is not allowed for the current user"}},"tokens":[]}`),
+			Warn,
 			1,
 		},
 		{
 			[]byte(`{"warnings":{"tokens":{"*":"Action 'deleteglobalaccount' is not allowed for the current user\nAction 'setglobalaccountstatus' is not allowed for the current user"}},"tokens":[]}`),
+			Warn,
 			2,
 		},
 		{
 			[]byte(`{"query":{"pages":{"709377":{"pageid":709377,"ns":2,"title":"Bruger:Cgtdk","contentmodel":"wikitext","pagelanguage":"da","touched":"2014-01-27T10:06:57Z","lastrevid":7257075,"counter":"","length":695}}}}`),
+			None,
 			0,
 		},
 	}
 
 	for i, errtest := range errtests {
-		js, err := simplejson.NewJson(errtest.jsonInput)
+		j, err := simplejson.NewJson(errtest.jsonInput)
 		if err != nil {
-			t.Fatalf("Invalid JSON for test %d: %s", i, err)
+			panic("Invalid test data: bad JSON input")
 		}
 
-		_, err = extractAPIErrors(js)
-		if errtest.errAmount > 0 {
-			if uint8(len(err.(*multierror.MultiError).Errors)) != errtest.errAmount {
-				t.Errorf("(test:%d) %d errors returned, expected %d: %s", i, len(err.(*multierror.MultiError).Errors), errtest.errAmount, err)
-			} else {
-				t.Logf("(test:%d) OK", i)
+		err = extractAPIErrors(j)
+
+		switch errtest.testType {
+		case Eror:
+			if _, ok := err.(APIError); !ok {
+				t.Errorf("(test:%d) expected APIError, got: %v", i, err)
 			}
-		} else {
+		case Warn:
+			e, ok := err.(APIWarnings)
+			if !ok {
+				t.Errorf("(test:%d) expected APIWarnings, got: %v", i, err)
+			}
+			if len(e) != errtest.warnAmount {
+				t.Errorf("(test:%d) expected %d warnings, got %d: %v", i, errtest.warnAmount, len(e), err)
+			}
+		case None:
 			if err != nil {
-				t.Errorf("(test:%d) >0 errors returned, expected nil: %v", i, err)
-			} else {
-				t.Logf("(test:%d) OK", i)
+				t.Errorf("(test:%d) expected nil, got !nil: %v", i, err)
 			}
-		}
-	}
-}
-
-func TestIsAPIErr(t *testing.T) {
-	errs := []struct {
-		errs     error
-		expected bool
-	}{
-		{
-			errs:     multierror.Errors{APIError{}}.Err(),
-			expected: true,
-		},
-		{
-			errs:     multierror.Errors{APIWarning{}}.Err(),
-			expected: true,
-		},
-		{
-			errs:     multierror.Errors{APIError{}, APIWarning{}}.Err(),
-			expected: true,
-		},
-		{
-			errs:     multierror.Errors{errors.New("not API err/warn")}.Err(),
-			expected: false,
-		},
-		{
-			errs:     multierror.Errors{APIError{}, errors.New("other")}.Err(),
-			expected: false,
-		},
-		{
-			errs: multierror.Errors{
-				errors.New("other"),
-				APIError{},
-				APIWarning{},
-			}.Err(),
-			expected: false,
-		},
-		{
-			errs:     errors.New("not even a multierr"),
-			expected: false,
-		},
-	}
-
-	for i, errtest := range errs {
-		got := IsAPIErr(errtest.errs)
-		if got != errtest.expected {
-			t.Errorf("(test %d) Expected %v, got %v. Err: %v",
-				i, errtest.expected, got, errtest.errs.Error())
 		}
 	}
 }

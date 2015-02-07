@@ -1,16 +1,15 @@
 package mwclient
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
 
-	"cgt.name/pkg/go-mwclient/multierror"
 	"github.com/bitly/go-simplejson"
 )
 
-// APIError represents a generic API error described by an error code
-// and a string containing information about the error.
+// APIError represents a MediaWiki API error.
 type APIError struct {
 	Code, Info string
 }
@@ -19,14 +18,26 @@ func (e APIError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Info)
 }
 
-// APIWarning represents a generic API warning described by the name of the module
-// from which the warning originates and a string containing information about the warning.
-type APIWarning struct {
+// APIWarnings represents a collection of MediaWiki API warnings.
+type APIWarnings []struct {
 	Module, Info string
 }
 
-func (e APIWarning) Error() string {
-	return fmt.Sprintf("%s: %s", e.Module, e.Info)
+func (w APIWarnings) Error() string {
+	var buf bytes.Buffer
+
+	amount := len(w) // amount of warnings
+	if amount == 1 {
+		buf.WriteString("1 warning: ")
+	} else {
+		buf.WriteString(fmt.Sprintf("%d warnings: ", len(w)))
+	}
+
+	for _, warn := range w {
+		buf.WriteString(fmt.Sprintf("[%s: %s] ", warn.Module, warn.Info))
+	}
+
+	return buf.String()
 }
 
 // captchaError represents the error returned by the API when it requires the client
@@ -64,88 +75,45 @@ var ErrAPIBusy = errors.New("the API is too busy. Try again later")
 // no arguments are passed.
 var ErrNoArgs = errors.New("no arguments passed")
 
-// extractAPIErrors extracts API errors and warnings from a given *simplejson.Json object
-// and returns them together in a multierror.Multierror object.
-func extractAPIErrors(json *simplejson.Json) (*simplejson.Json, error) {
-	// Check if there are any errors or warnings
-	var isAPIErrors, isAPIWarnings bool
-	if _, ok := json.CheckGet("error"); ok {
-		isAPIErrors = true
-	}
-	if _, ok := json.CheckGet("warnings"); ok {
-		isAPIWarnings = true
-	}
-	// If there are no errors or warnings, return with nil error.
-	if !isAPIErrors && !isAPIWarnings {
-		return json, nil
-	}
-
-	// There are errors/warnings, extract and return them.
-	var apiErrors multierror.Errors
-	if isAPIErrors {
-		// Extract error code
-		errorCode, err := json.GetPath("error", "code").String()
-		if err != nil {
-			return json, fmt.Errorf("unable to assert error code field to type string")
+// extractAPIErrors extracts API errors or warnings from a given
+// *simplejson.Json object. If it finds an error, it will return an APIError.
+// Otherwise it will look for warnings, and if it finds any it will return
+// it/them in an APIWarning.
+func extractAPIErrors(resp *simplejson.Json) error {
+	if e, ok := resp.CheckGet("error"); ok { // Check for errors
+		code, ok1 := e.CheckGet("code")
+		info, ok2 := e.CheckGet("info")
+		if !(ok1 && ok2) {
+			return errors.New("'error' object in API response is broken and stupid")
 		}
-
-		// Extract error info
-		errorInfo, err := json.GetPath("error", "info").String()
-		if err != nil {
-			return json, fmt.Errorf("unable to assert error info field to type string")
+		return APIError{
+			Code: code.MustString(),
+			Info: info.MustString(),
 		}
+	} else if w, ok := resp.CheckGet("warnings"); ok { // Check for warnings
+		warnings := APIWarnings{}
 
-		apiErrors = append(apiErrors, APIError{errorCode, errorInfo})
-	}
-
-	if isAPIWarnings {
-		// Extract warnings
-		warningsMap, err := json.Get("warnings").Map()
+		wmap, err := w.Map()
 		if err != nil {
-			return nil, fmt.Errorf("unable to assert 'warnings' field to type map[string]interface{}\n")
+			return errors.New("'warnings' object in API response is broken and stupid")
 		}
+		for module, v := range wmap {
+			info := v.(map[string]interface{})["*"].(string)
 
-		for k, v := range warningsMap {
-			warning := v.(map[string]interface{})["*"]
-
-			if strings.Contains(warning.(string), "\n") {
+			if strings.Contains(info, "\n") {
 				// There can be multiple warnings in one warning info field.
 				// If so, they are separated by a newline.
 				// Split the warning string into two warnings and add them separately.
-				for _, warn := range strings.Split(warning.(string), "\n") {
-					apiErrors = append(apiErrors, APIWarning{k, warn})
+				for _, warn := range strings.Split(info, "\n") {
+					warnings = append(warnings, APIWarnings{{Module: module, Info: warn}}...)
 				}
 			} else {
-				apiErrors = append(apiErrors, APIWarning{k, warning.(string)})
+				warnings = append(warnings, APIWarnings{{module, info}}...)
 			}
 		}
+
+		return warnings
 	}
 
-	return json, apiErrors.Err()
-}
-
-// IsAPIErr checks if an error is a multierror containing only `APIError`s
-// and `APIWarning`s, as returned by Client.Get(Raw)() and Client.Post(Raw)().
-// Useful for avoiding boilerplate when checking if the returned error is
-// an API error/warning or some other error (probably a net or HTTP err).
-func IsAPIErr(err error) bool {
-	// Please avert your eyes.
-	// This was easier than refactoring.
-	switch e := err.(type) {
-	case *multierror.MultiError:
-		for _, merr := range e.Errors {
-			var apierr, apiwarn = false, false
-			switch merr.(type) {
-			case APIError:
-				apierr = true
-			case APIWarning:
-				apiwarn = true
-			}
-			if !(apierr || apiwarn) {
-				return false
-			}
-		}
-		return true
-	}
-	return false
+	return nil
 }
