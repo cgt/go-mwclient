@@ -257,6 +257,7 @@ func (w *Client) PostRaw(p params.Values) ([]byte, error) {
 }
 
 // Login attempts to login using the provided username and password.
+// Login sets Client.Assert to AssertUser if login is successful.
 func (w *Client) Login(username, password string) error {
 
 	// By using a closure, we avoid requiring the public Login method to have
@@ -295,6 +296,9 @@ func (w *Client) Login(username, password string) error {
 			return APIError{Code: lgResult}
 		}
 
+		if w.Assert == AssertNone {
+			w.Assert = AssertUser
+		}
 		return nil
 	}
 
@@ -302,7 +306,9 @@ func (w *Client) Login(username, password string) error {
 }
 
 // Logout sends a logout request to the API.
-// It does not take into account whether or not a user is actually logged in.
+// Logout does not take into account whether or not a user is actually logged in.
+// Logout sets Client.Assert to AssertNone.
 func (w *Client) Logout() {
+	w.Assert = AssertNone
 	w.Get(params.Values{"action": "logout"})
 }
