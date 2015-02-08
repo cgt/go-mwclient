@@ -83,7 +83,7 @@ func New(inURL, userAgent string) (*Client, error) {
 		},
 		cjar:      cjar,
 		APIURL:    apiurl,
-		UserAgent: fmt.Sprintf("%s (%s)", userAgent, DefaultUserAgent),
+		UserAgent: fmt.Sprintf("%s %s", userAgent, DefaultUserAgent),
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
 			On:      false,
