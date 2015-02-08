@@ -23,7 +23,7 @@ func TestLogin(t *testing.T) {
 	loginHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
-			t.Fatal("Bad test parameters")
+			panic("Bad HTTP form")
 		}
 
 		// This is really difficult to read. Sorry...
@@ -118,7 +118,7 @@ func TestLoginToken(t *testing.T) {
 	loginHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
-			t.Fatal("Bad test parameters")
+			panic("Bad HTTP form")
 		}
 
 		lgtoken := "7aaaf636d99d46cf2656561c5d099ad7"
@@ -152,7 +152,7 @@ func TestMaxlagOn(t *testing.T) {
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
-			t.Fatal("Bad test parameters")
+			panic("Bad HTTP form")
 		}
 
 		if r.Form.Get("maxlag") == "" {
@@ -172,7 +172,7 @@ func TestMaxlagOff(t *testing.T) {
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
-			t.Fatal("Bad test parameters")
+			panic("Bad HTTP form")
 		}
 
 		if r.Form.Get("maxlag") != "" {
@@ -197,7 +197,7 @@ func TestMaxlagRetryFail(t *testing.T) {
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
-			t.Fatal("Bad test parameters")
+			panic("Bad HTTP form")
 		}
 		if r.Form.Get("maxlag") == "" {
 			t.Fatalf("maxlag param not set. Params: %s", r.Form.Encode())
@@ -217,4 +217,70 @@ func TestMaxlagRetryFail(t *testing.T) {
 	if err != ErrAPIBusy {
 		t.Fatalf("Expected ErrAPIBusy error from call(), got: %v", err)
 	}
+}
+
+func TestAssertOff(t *testing.T) {
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			panic("Bad HTTP form")
+		}
+
+		if r.Form.Get("assert") != "" {
+			t.Fatalf("Expected no assert param, found 'assert=%s'", r.Form.Get("assert"))
+		}
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	p := params.Values{}
+	// Assert should be off by default
+	client.Get(p)
+}
+
+func TestAssertUser(t *testing.T) {
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			panic("Bad HTTP form")
+		}
+
+		if r.Form.Get("assert") == "" {
+			t.Fatalf("Expected assert param, got none or empty")
+		}
+		if v := r.Form.Get("assert"); v != "user" {
+			t.Fatalf("Expected 'assert=user', got 'assert=%s'", v)
+		}
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	p := params.Values{}
+	client.Assert = AssertUser
+	client.Get(p)
+}
+
+func TestAssertBot(t *testing.T) {
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseForm()
+		if err != nil {
+			panic("Bad HTTP form")
+		}
+
+		if r.Form.Get("assert") == "" {
+			t.Fatalf("Expected assert param, got none or empty")
+		}
+		if v := r.Form.Get("assert"); v != "bot" {
+			t.Fatalf("Expected 'assert=bot', got 'assert=%s'", v)
+		}
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	p := params.Values{}
+	client.Assert = AssertBot
+	client.Get(p)
 }
