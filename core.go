@@ -254,7 +254,7 @@ func (w *Client) Post(p params.Values) (*simplejson.Json, error) {
 // PostRaw is useful when you want to decode the JSON into a struct for easier
 // and safer use.
 func (w *Client) PostRaw(p params.Values) ([]byte, error) {
-	return w.call(p, false)
+	return w.call(p, true)
 }
 
 // Login attempts to login using the provided username and password.
