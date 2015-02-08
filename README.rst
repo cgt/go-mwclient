@@ -6,13 +6,14 @@ go-mwclient is a library for interacting with the MediaWiki API. The package's
 actual name is "mwclient", but it is called "go-mwclient" to avoid confusion
 with similarly named libraries using other languages.
 
+
 The canonical import path for this package is
 
 ::
 
     import cgt.name/pkg/go-mwclient // imports "mwclient"
 
-Relevant links:
+Documentation:
  - GoDoc: http://godoc.org/cgt.name/pkg/go-mwclient
  - MediaWiki API docs: https://www.mediawiki.org/wiki/API:Main_page
 

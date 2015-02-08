@@ -60,9 +60,10 @@ type (
 
 // New returns a pointer to an initialized Client object. If the provided API URL
 // is invalid (as defined by the net/url package), then it will return nil and
-// the error from url.Parse(). New disables maxlag by default. To enable it,
-// simply set Client.Maxlag.On to true.
-// The default timeout is 5 seconds and the default amount of retries is 3.
+// the error from url.Parse(). If the user agent is empty, this will also result
+// in an error. New disables maxlag by default. To enable it, simply set
+// Client.Maxlag.On to true. The default timeout is 5 seconds and the default
+// amount of retries is 3.
 func New(inURL, userAgent string) (*Client, error) {
 	cjar, _ := cookiejar.New(nil)
 	apiurl, err := url.Parse(inURL)
