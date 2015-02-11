@@ -55,8 +55,13 @@ type (
 		Timeout string
 		// Specifies how many times to retry a request before returning with an error.
 		Retries int
+		// sleep is used for mocking time.Sleep in tests to avoid prolonging
+		// test execution needlessly by actually sleeping.
+		sleep sleeper
 	}
 )
+
+type sleeper func(d time.Duration)
 
 // New returns a pointer to an initialized Client object. If the provided API URL
 // is invalid (as defined by the net/url package), then it will return nil and
@@ -89,6 +94,7 @@ func New(inURL, userAgent string) (*Client, error) {
 			On:      false,
 			Timeout: "5",
 			Retries: 3,
+			sleep:   time.Sleep,
 		},
 		Assert: AssertNone,
 	}, nil
@@ -189,7 +195,7 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 			if lagerr, ok := err.(maxLagError); ok {
 				// If there are no tries left, don't wait needlessly.
 				if tries < w.Maxlag.Retries-1 {
-					time.Sleep(time.Duration(lagerr.Wait) * time.Second)
+					w.Maxlag.sleep(time.Duration(lagerr.Wait) * time.Second)
 				}
 				continue
 			} else {

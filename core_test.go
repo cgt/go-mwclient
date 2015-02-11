@@ -5,9 +5,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"cgt.name/pkg/go-mwclient/params"
 )
+
+func noSleep(d time.Duration) {
+	return // the test monster under my bed is keeping me awake
+}
 
 func setup(handler func(w http.ResponseWriter, r *http.Request)) (*httptest.Server, *Client) {
 	server := httptest.NewServer(http.HandlerFunc(handler))
@@ -15,6 +20,7 @@ func setup(handler func(w http.ResponseWriter, r *http.Request)) (*httptest.Serv
 	if err != nil {
 		panic(err)
 	}
+	client.Maxlag.sleep = noSleep
 
 	return server, client
 }
@@ -189,11 +195,6 @@ func TestMaxlagOff(t *testing.T) {
 }
 
 func TestMaxlagRetryFail(t *testing.T) {
-	// There's sleep calls in this test
-	if testing.Short() {
-		t.SkipNow()
-	}
-
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
