@@ -21,27 +21,36 @@ func TestExtractAPIErrors(t *testing.T) {
 		warnAmount int
 	}{
 		{
-			[]byte(`{"servedby":"mw1197","error":{"code":"nouser","info":"The user parameter must be set"}}`),
+			[]byte(`{"servedby":"mw1197","error":{"code":"nouser",
+			"info":"The user parameter must be set"}}`),
 			Eror,
 			0,
 		},
 		{
-			[]byte(`{"servedby":"mw1204","error":{"code":"notoken","info":"The token parameter must be set"}}`),
+			[]byte(`{"servedby":"mw1204","error":{"code":"notoken",
+			"info":"The token parameter must be set"}}`),
 			Eror,
 			0,
 		},
 		{
-			[]byte(`{"warnings":{"tokens":{"*":"Action 'deleteglobalaccount' is not allowed for the current user"}},"tokens":[]}`),
+			[]byte(`{"warnings":{"tokens":{"*":
+			"Action 'deleteglobalaccount' is not allowed for the current user"}},
+			"tokens":[]}`),
 			Warn,
 			1,
 		},
 		{
-			[]byte(`{"warnings":{"tokens":{"*":"Action 'deleteglobalaccount' is not allowed for the current user\nAction 'setglobalaccountstatus' is not allowed for the current user"}},"tokens":[]}`),
+			[]byte(`{"warnings":{"tokens":{"*":
+			"Action 'deleteglobalaccount' is not allowed for the current user\nAction 'setglobalaccountstatus' is not allowed for the current user"}},
+			"tokens":[]}`),
 			Warn,
 			2,
 		},
 		{
-			[]byte(`{"query":{"pages":{"709377":{"pageid":709377,"ns":2,"title":"Bruger:Cgtdk","contentmodel":"wikitext","pagelanguage":"da","touched":"2014-01-27T10:06:57Z","lastrevid":7257075,"counter":"","length":695}}}}`),
+			[]byte(`{"query":{"pages":{"709377":{"pageid":709377,"ns":2,"title":
+			"Bruger:Cgtdk","contentmodel":"wikitext","pagelanguage":"da",
+			"touched":"2014-01-27T10:06:57Z","lastrevid":7257075,"counter":"",
+			"length":695}}}}`),
 			None,
 			0,
 		},
@@ -66,7 +75,8 @@ func TestExtractAPIErrors(t *testing.T) {
 				t.Errorf("(test:%d) expected APIWarnings, got: %v", i, err)
 			}
 			if len(e) != errtest.warnAmount {
-				t.Errorf("(test:%d) expected %d warnings, got %d: %v", i, errtest.warnAmount, len(e), err)
+				t.Errorf("(test:%d) expected %d warnings, got %d: %v", i,
+					errtest.warnAmount, len(e), err)
 			}
 		case None:
 			if err != nil {

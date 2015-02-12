@@ -131,12 +131,16 @@ func TestLoginToken(t *testing.T) {
 
 		if r.PostForm.Get("lgtoken") == "" {
 			fmt.Fprintf(w,
-				`{"login":{"result":"NeedToken","token":"%s","cookieprefix":"dawiki","sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
+				`{"login":{"result":"NeedToken","token":"%s",
+				"cookieprefix":"dawiki",
+				"sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
 				lgtoken)
 		} else {
 			if got := r.PostForm.Get("lgtoken"); got == lgtoken {
 				fmt.Fprintf(w,
-					`{"login":{"result":"Success","lguserid":1,"lgusername":"username","lgtoken":"%s","cookieprefix":"dawiki","sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
+					`{"login":{"result":"Success","lguserid":1,
+					"lgusername":"username","lgtoken":"%s","cookieprefix":"dawiki",
+					"sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
 					lgtoken)
 			} else {
 				t.Fatalf("sent lgtoken '%s', got '%s'", lgtoken, got)

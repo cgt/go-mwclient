@@ -19,8 +19,8 @@ var ErrEditNoChange = errors.New("edit successful, but did not change page")
 // then ErrEditNoChange is returned.
 // The p (params.Values) argument should contain parameters from:
 //	https://www.mediawiki.org/wiki/API:Edit#Parameters
-// Edit will set the 'action' and 'token' parameters automatically, but if the token
-// field in p is non-empty, Edit will not override it.
+// Edit will set the 'action' and 'token' parameters automatically, but if the
+// token field in p is non-empty, Edit will not override it.
 // Edit does not check p for sanity.
 // p example:
 //	params.Values{

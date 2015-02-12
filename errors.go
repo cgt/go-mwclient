@@ -40,8 +40,8 @@ func (w APIWarnings) Error() string {
 	return buf.String()
 }
 
-// captchaError represents the error returned by the API when it requires the client
-// to solve a CAPTCHA to perform the action requested.
+// captchaError represents the error returned by the API when it requires the
+// client to solve a CAPTCHA to perform the action requested.
 type captchaError struct {
 	Type string `json:"type"`
 	Mime string `json:"mime"`
@@ -50,13 +50,14 @@ type captchaError struct {
 }
 
 func (e captchaError) Error() string {
-	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s", e.Type, e.Mime, e.ID, e.URL)
+	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s",
+		e.Type, e.Mime, e.ID, e.URL)
 }
 
-// maxLagError is returned by the callf closure in the Client.call method when there is too much
-// lag on the MediaWiki site. maxLagError contains a message from the server in the format
-// "Waiting for $host: $lag seconds lagged\n" and an integer specifying how many seconds to wait
-// before trying the request again.
+// maxLagError is returned by the callf closure in the Client.call method when
+// there is too much lag on the MediaWiki site. maxLagError contains a message
+// from the server in the format "Waiting for $host: $lag seconds lagged\n" and
+// an integer specifying how many seconds to wait before trying the request again.
 type maxLagError struct {
 	Message string
 	Wait    int
