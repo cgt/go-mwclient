@@ -35,7 +35,7 @@ type (
 	Client struct {
 		httpc     *http.Client
 		cjar      *cookiejar.Jar
-		APIURL    *url.URL
+		apiURL    *url.URL
 		UserAgent string
 		Tokens    map[string]string
 		Maxlag    Maxlag
@@ -66,7 +66,11 @@ type sleeper func(d time.Duration)
 // New returns a pointer to an initialized Client object. If the provided API URL
 // is invalid (as defined by the net/url package), then it will return nil and
 // the error from url.Parse(). If the user agent is empty, this will also result
-// in an error. New disables maxlag by default. To enable it, simply set
+// in an error. The userAgent parameter will be combined with the
+// DefaultUserAgent const to form a meaningful user agent. If this is undesired,
+// the UserAgent field on the Client is exported and can therefore be set
+// manually.
+// New disables maxlag by default. To enable it, simply set
 // Client.Maxlag.On to true. The default timeout is 5 seconds and the default
 // amount of retries is 3.
 func New(inURL, userAgent string) (*Client, error) {
@@ -87,7 +91,7 @@ func New(inURL, userAgent string) (*Client, error) {
 			Jar:           cjar,
 		},
 		cjar:      cjar,
-		APIURL:    apiurl,
+		apiURL:    apiurl,
 		UserAgent: fmt.Sprintf("%s %s", userAgent, DefaultUserAgent),
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
@@ -138,9 +142,9 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 		var req *http.Request
 		var err error
 		if post {
-			req, err = http.NewRequest(httpMethod, w.APIURL.String(), strings.NewReader(p.Encode()))
+			req, err = http.NewRequest(httpMethod, w.apiURL.String(), strings.NewReader(p.Encode()))
 		} else {
-			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.APIURL.String(), p.Encode()), nil)
+			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("unable to create HTTP request (method: %s, params: %v): %v",
@@ -154,7 +158,7 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 		}
 
 		// Set any old cookies on the request
-		for _, cookie := range w.cjar.Cookies(w.APIURL) {
+		for _, cookie := range w.cjar.Cookies(w.apiURL) {
 			req.AddCookie(cookie)
 		}
 
