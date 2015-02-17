@@ -90,3 +90,99 @@ func TestGetCachedToken(t *testing.T) {
 			gotToken)
 	}
 }
+
+func TestEditCaptchaImage(t *testing.T) {
+	resp := `{
+	"edit": {
+		"captcha": {
+			"type": "image",
+			"mime": "image/png",
+			"id": "1",
+			"url": "CAPTCHAURL"
+		},
+		"result": "Failure"
+	}
+}`
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, resp)
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	client.Tokens["csrf"] = "doesn't matter"
+	err := client.Edit(params.Values{})
+	if err == nil {
+		t.Fatalf("error not detected despite edit failure")
+	}
+	e, ok := err.(CaptchaError)
+	if !ok {
+		t.Fatalf("error returned, but is not of type CaptchaError: %T", err)
+	}
+
+	// Check that CaptchaError fields are correct
+	if e.ID != "1" {
+		t.Errorf("CaptchaError.ID is not \"1\": ID == %s", e.ID)
+	}
+	if e.Mime != "image/png" {
+		t.Errorf("CaptchaError.Mime is not \"image/png\": Mime == %s", e.Mime)
+	}
+	if e.Type != "image" {
+		t.Errorf("CaptchaError.Type is not \"image\": Type == %s", e.Type)
+	}
+	if e.URL != "CAPTCHAURL" {
+		t.Errorf("CaptchaError.URL is not \"CAPTCHAURL\": URL == %s", e.URL)
+	}
+	if e.Question != "" {
+		t.Errorf("e.Question is not empty string despite image captcha: %s",
+			e.Question)
+	}
+}
+
+func TestEditCaptchaMath(t *testing.T) {
+	resp := `{
+    "edit": {
+        "captcha": {
+            "type": "math",
+            "mime": "text/tex",
+            "id": "1",
+            "question": "84 - 3 = "
+        },
+        "result": "Failure"
+    }
+}`
+	httpHandler := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, resp)
+	}
+
+	server, client := setup(httpHandler)
+	defer server.Close()
+
+	client.Tokens["csrf"] = "doesn't matter"
+	err := client.Edit(params.Values{})
+	if err == nil {
+		t.Fatalf("error not detected despite edit failure")
+	}
+	e, ok := err.(CaptchaError)
+	if !ok {
+		t.Fatalf("error returned, but is not of type CaptchaError: %T", err)
+	}
+
+	// Check that CaptchaError fields are correct
+	if e.ID != "1" {
+		t.Errorf("CaptchaError.ID is not \"1\": ID == %s", e.ID)
+	}
+	if e.Mime != "text/tex" {
+		t.Errorf("CaptchaError.Mime is not \"text/tex\": Mime == %s", e.Mime)
+	}
+	if e.Type != "math" {
+		t.Errorf("CaptchaError.Type is not \"math\": Type == %s", e.Type)
+	}
+	if e.Question != "84 - 3 = " {
+		t.Errorf("CaptchaError.Question is not \"84  - 3 = \": Question == %s",
+			e.Question)
+	}
+	if e.URL != "" {
+		t.Errorf("e.URL is not empty string despite math captcha: %s", e.URL)
+	}
+}

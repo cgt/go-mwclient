@@ -57,7 +57,7 @@ func (w *Client) Edit(p params.Values) error {
 			if err != nil {
 				return fmt.Errorf("error occured while creating error message: %s", err)
 			}
-			var captchaerr captchaError
+			var captchaerr CaptchaError
 			err = json.Unmarshal(captchaBytes, &captchaerr)
 			if err != nil {
 				return fmt.Errorf("error occured while creating error message: %s", err)

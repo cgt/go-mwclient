@@ -40,18 +40,28 @@ func (w APIWarnings) Error() string {
 	return buf.String()
 }
 
-// captchaError represents the error returned by the API when it requires the
+// CaptchaError represents the error returned by the API when it requires the
 // client to solve a CAPTCHA to perform the action requested.
-type captchaError struct {
-	Type string `json:"type"`
-	Mime string `json:"mime"`
-	ID   string `json:"id"`
-	URL  string `json:"url"`
+type CaptchaError struct {
+	Type     string `json:"type"`
+	Mime     string `json:"mime"`
+	ID       string `json:"id"`
+	URL      string `json:"url"`
+	Question string `json:"question"`
 }
 
-func (e captchaError) Error() string {
-	return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s",
-		e.Type, e.Mime, e.ID, e.URL)
+func (e CaptchaError) Error() string {
+	if e.URL != "" {
+		return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s at URL %s",
+			e.Type, e.Mime, e.ID, e.URL)
+	} else if e.Question != "" {
+		return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s: %s",
+			e.Type, e.Mime, e.ID, e.Question)
+	} else {
+		// Unknown CAPTCHA type
+		return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID",
+			e.Type, e.Mime, e.ID)
+	}
 }
 
 // maxLagError is returned by the callf closure in the Client.call method when
