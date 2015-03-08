@@ -63,22 +63,18 @@ func (w *Client) NewQuery(p params.Values) *Query {
 }
 
 // Next retrieves the next set of results from the API and makes them available
-// through the Resp method. Next returns true if there are more results to be
-// retrieved, or false if all the results have been retrieved or if an error
-// occurs.
+// through the Resp method. Next returns true if new results are available
+// through Resp or false if there were no more results to request or if an
+// error occurred.
 func (q *Query) Next() (done bool) {
-	firstCall := false
 	if q.resp == nil {
 		// first call to Next
-		firstCall = true
 		q.resp, q.err = q.mwc.Get(q.params)
+		return q.err == nil
 	}
 
 	cont, ok := q.resp.CheckGet("continue")
 	if !ok {
-		if firstCall {
-			return true
-		}
 		return false
 	}
 	cm, err := cont.Map()
@@ -96,8 +92,5 @@ func (q *Query) Next() (done bool) {
 	}
 
 	q.resp, q.err = q.mwc.Get(q.params)
-	if q.err != nil {
-		return false
-	}
-	return true
+	return q.err == nil
 }
