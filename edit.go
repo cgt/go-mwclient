@@ -117,7 +117,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 	resp, err := w.Get(p)
 	if err != nil {
-		return pages, err
+		return nil, err
 	}
 
 	// make sure we can properly map input page names
@@ -129,17 +129,17 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 	if normalizations, has := resp.Get("query").CheckGet("normalized"); has {
 		fixes, err := normalizations.Array()
 		if err != nil {
-			return pages, err
+			return nil, err
 		}
 
 		for i := 0; i < len(fixes); i++ {
 			from, err := normalizations.GetIndex(i).Get("from").String()
 			if err != nil {
-				return pages, err
+				return nil, err
 			}
 			to, err := normalizations.GetIndex(i).Get("to").String()
 			if err != nil {
-				return pages, err
+				return nil, err
 			}
 			denormalizedNames[to] = from
 		}
@@ -147,7 +147,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 	pageIDs, err := resp.GetPath("query", "pageids").Array()
 	if err != nil {
-		return pages, err
+		return nil, err
 	}
 
 	for _, idi := range pageIDs { // fill the pages
@@ -156,14 +156,14 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 		entry := resp.GetPath("query", "pages", id)
 		if entry == nil {
-			return pages, fmt.Errorf("API Error: Expected page to be in pages array")
+			return nil, fmt.Errorf("API Error: Expected page to be in pages array")
 		}
 
 		if _, noExists := entry.CheckGet("missing"); noExists {
 			page.Error = ErrPageNotFound
 			title, err := entry.Get("title").String()
 			if err != nil {
-				return pages, err
+				return nil, err
 			}
 			pages[title] = page
 			continue
@@ -171,24 +171,24 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 		revs := entry.Get("revisions")
 		if revs == nil {
-			return pages, fmt.Errorf("API Error: revision list not returned")
+			return nil, fmt.Errorf("API Error: revision list not returned")
 		}
 
 		rev := revs.GetIndex(0)
 
 		page.Content, err = rev.Get("*").String()
 		if err != nil {
-			return pages, fmt.Errorf("unable to assert page content to string: %s", err)
+			return nil, fmt.Errorf("unable to assert page content to string: %s", err)
 		}
 
 		page.Timestamp, err = rev.Get("timestamp").String()
 		if err != nil {
-			return pages, fmt.Errorf("unable to assert timestamp to string: %s", err)
+			return nil, fmt.Errorf("unable to assert timestamp to string: %s", err)
 		}
 
 		trueTitle, err := entry.Get("title").String()
 		if err != nil {
-			return pages, fmt.Errorf("API Error: Page entry does not have title field")
+			return nil, fmt.Errorf("API Error: Page entry does not have title field")
 		}
 
 		if inputted, ok := denormalizedNames[trueTitle]; ok {
