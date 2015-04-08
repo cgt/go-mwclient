@@ -12,6 +12,10 @@ import (
 // a page but was otherwise successful.
 var ErrEditNoChange = errors.New("edit successful, but did not change page")
 
+// ErrPageNotFound is returned when a page is not found.
+// See GetPage[s]ByName().
+var ErrPageNotFound = errors.New("Wiki page not found")
+
 // Edit takes a params.Values containing parameters for an edit action and
 // attempts to perform the edit. Edit will return nil if no errors are detected.
 // If the edit was successful, but did not result in a change to the page
@@ -80,6 +84,21 @@ func (w *Client) Edit(p params.Values) error {
 // If the isName parameter is true, then the pageIDorName parameter will be
 // assumed to be a page name and vice versa.
 func (w *Client) getPage(pageIDorName string, isName bool) (content string, timestamp string, err error) {
+	pages, err := w.getPages(isName, pageIDorName)
+	if err != nil {
+		return "", "", err
+	}
+
+	page := pages[pageIDorName]
+	return page.Content, page.Timestamp, page.Error
+}
+
+// getPages is just like getPage, but performs a multi-query so that
+// only one network call will be used to get the contents of many pages.
+// Maps the input name onto a BriefRevision result.
+func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[string]BriefRevision, err error) {
+	pages = make(map[string]BriefRevision, len(pageIDsOrNames))
+
 	p := params.Values{
 		"action":       "query",
 		"prop":         "revisions",
@@ -88,43 +107,98 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 		"continue":     "",
 	}
 
-	if isName {
-		p.Set("titles", pageIDorName)
-	} else {
-		p.Set("pageids", pageIDorName)
+	for _, identifier := range pageIDsOrNames {
+		if areNames {
+			p.Add("titles", identifier)
+		} else {
+			p.Add("pageids", identifier)
+		}
 	}
 
 	resp, err := w.Get(p)
 	if err != nil {
-		return "", "", err
+		return pages, err
+	}
+
+	// make sure we can properly map input page names
+	// to output names in the output map.
+	// reversed normalized titles
+	// canonical -> inputted
+	denormalizedNames := make(map[string]string)
+
+	if normalizations, has := resp.Get("query").CheckGet("normalized"); has {
+		fixes, err := normalizations.Array()
+		if err != nil {
+			return pages, err
+		}
+
+		for i := 0; i < len(fixes); i++ {
+			from, err := normalizations.GetIndex(i).Get("from").String()
+			if err != nil {
+				return pages, err
+			}
+			to, err := normalizations.GetIndex(i).Get("to").String()
+			if err != nil {
+				return pages, err
+			}
+			denormalizedNames[to] = from
+		}
 	}
 
 	pageIDs, err := resp.GetPath("query", "pageids").Array()
 	if err != nil {
-		return "", "", err
-	}
-	id := pageIDs[0].(string)
-	if id == "0" || id == "-1" {
-		return "", "", fmt.Errorf("page missing (title/id: %s)", pageIDorName)
+		return pages, err
 	}
 
-	revs, ok := resp.GetPath("query", "pages", id).CheckGet("revisions")
-	if !ok {
-		return "", "", fmt.Errorf("path query.pages.%s.revisions missing from response", id)
-	}
-	revs = revs.GetIndex(0)
+	for _, idi := range pageIDs { // fill the pages
+		id := idi.(string)
+		page := BriefRevision{PageID: id}
 
-	content, err = revs.Get("*").String()
-	if err != nil {
-		return "", "", fmt.Errorf("unable to assert page content to string: %s", err)
+		entry := resp.GetPath("query", "pages", id)
+		if entry == nil {
+			return pages, fmt.Errorf("API Error: Expected page to be in pages array")
+		}
+
+		if _, noExists := entry.CheckGet("missing"); noExists {
+			page.Error = ErrPageNotFound
+			title, err := entry.Get("title").String()
+			if err != nil {
+				return pages, err
+			}
+			pages[title] = page
+			continue
+		}
+
+		revs := entry.Get("revisions")
+		if revs == nil {
+			return pages, fmt.Errorf("API Error: revision list not returned")
+		}
+
+		rev := revs.GetIndex(0)
+
+		page.Content, err = rev.Get("*").String()
+		if err != nil {
+			return pages, fmt.Errorf("unable to assert page content to string: %s", err)
+		}
+
+		page.Timestamp, err = rev.Get("timestamp").String()
+		if err != nil {
+			return pages, fmt.Errorf("unable to assert timestamp to string: %s", err)
+		}
+
+		trueTitle, err := entry.Get("title").String()
+		if err != nil {
+			return pages, fmt.Errorf("API Error: Page entry does not have title field")
+		}
+
+		if inputted, ok := denormalizedNames[trueTitle]; ok {
+			pages[inputted] = page
+		} else {
+			pages[trueTitle] = page
+		}
 	}
 
-	timestamp, err = revs.Get("timestamp").String()
-	if err != nil {
-		return "", "", fmt.Errorf("unable to assert timestamp to string: %s", err)
-	}
-
-	return content, timestamp, nil
+	return pages, nil
 }
 
 // GetPageByName gets the content of a page (specified by its name) and
@@ -133,10 +207,22 @@ func (w *Client) GetPageByName(pageName string) (content string, timestamp strin
 	return w.getPage(pageName, true)
 }
 
+// GetPagesByName gets the contents of multiple pages (specified by their names).
+// Returns a map of input page names to BriefRevisions.
+func (w *Client) GetPagesByName(pageNames ...string) (pages map[string]BriefRevision, err error) {
+	return w.getPages(true, pageNames...)
+}
+
 // GetPageByID gets the content of a page (specified by its id) and
 // the timestamp of its most recent revision.
 func (w *Client) GetPageByID(pageID string) (content string, timestamp string, err error) {
 	return w.getPage(pageID, false)
+}
+
+// GetPageByID gets the content of pages (specified by id).
+// Returns a map of input page names to BriefRevisions.
+func (w *Client) GetPagesByID(pageIDs ...string) (pages map[string]BriefRevision, err error) {
+	return w.getPages(false, pageIDs...)
 }
 
 // These consts represents MW API token names.

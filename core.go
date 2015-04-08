@@ -59,6 +59,15 @@ type (
 		// test execution needlessly by actually sleeping.
 		sleep sleeper
 	}
+
+	// BriefRevision contains basic information on a
+	// single revision of a page.
+	BriefRevision struct {
+		Content   string
+		Timestamp string
+		Error     error
+		PageID    string
+	}
 )
 
 type sleeper func(d time.Duration)
