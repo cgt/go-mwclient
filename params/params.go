@@ -46,7 +46,11 @@ func (v Values) Set(key, value string) {
 // Add adds the value to key. It appends to any existing
 // values associated with key.
 func (v Values) Add(key, value string) {
-	v[key] = strings.Join([]string{v[key], value}, "|")
+	if current, ok := v[key]; ok {
+		v[key] = strings.Join([]string{current, value}, "|")
+	} else {
+		v[key] = value
+	}
 }
 
 // Del deletes the value associated with key.

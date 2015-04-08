@@ -51,3 +51,31 @@ func TestQueryValues(t *testing.T) {
 		t.Errorf("second Get(bar) = %q, want %q", g, e)
 	}
 }
+func TestQueryValues_Add(t *testing.T) {
+	v := Values{
+		"foo": "a",
+		"bar": "",
+		// baz added later
+	}
+
+	v.Add("foo", "b")
+	if g := v.Get("foo"); g != "a|b" {
+		t.Errorf("Expected a|b, got %v", g)
+	}
+
+	v.Add("bar", "a")
+	if g := v.Get("bar"); g != "|a" {
+		t.Errorf("Expected |a, got %v", g)
+	}
+
+	v.Add("baz", "a")
+	if g := v.Get("baz"); g != "a" {
+		t.Errorf("Expected a, got %v", g)
+	}
+
+	v.Add("baz", "b")
+	if g := v.Get("baz"); g != "a|b" {
+		t.Errorf("Expected a|b, got %v", g)
+	}
+
+}
