@@ -59,7 +59,7 @@ func (e CaptchaError) Error() string {
 			e.Type, e.Mime, e.ID, e.Question)
 	} else {
 		// Unknown CAPTCHA type
-		return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID",
+		return fmt.Sprintf("API requires solving a CAPTCHA of type %s (%s) with ID %s",
 			e.Type, e.Mime, e.ID)
 	}
 }

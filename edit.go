@@ -14,7 +14,7 @@ var ErrEditNoChange = errors.New("edit successful, but did not change page")
 
 // ErrPageNotFound is returned when a page is not found.
 // See GetPage[s]ByName().
-var ErrPageNotFound = errors.New("Wiki page not found")
+var ErrPageNotFound = errors.New("wiki page not found")
 
 // Edit takes a params.Values containing parameters for an edit action and
 // attempts to perform the edit. Edit will return nil if no errors are detected.
@@ -97,6 +97,10 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 // only one network call will be used to get the contents of many pages.
 // Maps the input name onto a BriefRevision result.
 func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[string]BriefRevision, err error) {
+	if len(pageIDsOrNames) == 0 {
+		return nil, ErrNoArgs
+	}
+
 	pages = make(map[string]BriefRevision, len(pageIDsOrNames))
 
 	p := params.Values{
@@ -145,18 +149,17 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 		}
 	}
 
-	pageIDs, err := resp.GetPath("query", "pageids").Array()
+	pageIDs, err := resp.GetPath("query", "pageids").StringArray()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, idi := range pageIDs { // fill the pages
-		id := idi.(string)
+	for _, id := range pageIDs { // fill the pages
 		page := BriefRevision{PageID: id}
 
 		entry := resp.GetPath("query", "pages", id)
 		if entry == nil {
-			return nil, fmt.Errorf("API Error: Expected page to be in pages array")
+			return nil, fmt.Errorf("API error: expected page to be in pages array")
 		}
 
 		if _, noExists := entry.CheckGet("missing"); noExists {
@@ -171,7 +174,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 		revs := entry.Get("revisions")
 		if revs == nil {
-			return nil, fmt.Errorf("API Error: revision list not returned")
+			return nil, fmt.Errorf("API error: revision list not returned")
 		}
 
 		rev := revs.GetIndex(0)
@@ -188,7 +191,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 		trueTitle, err := entry.Get("title").String()
 		if err != nil {
-			return nil, fmt.Errorf("API Error: Page entry does not have title field")
+			return nil, fmt.Errorf("API error: page entry does not have title field")
 		}
 
 		if inputted, ok := denormalizedNames[trueTitle]; ok {
@@ -219,7 +222,7 @@ func (w *Client) GetPageByID(pageID string) (content string, timestamp string, e
 	return w.getPage(pageID, false)
 }
 
-// GetPageByID gets the content of pages (specified by id).
+// GetPagesByID gets the content of pages (specified by id).
 // Returns a map of input page names to BriefRevisions.
 func (w *Client) GetPagesByID(pageIDs ...string) (pages map[string]BriefRevision, err error) {
 	return w.getPages(false, pageIDs...)
