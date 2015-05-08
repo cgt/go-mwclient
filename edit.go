@@ -43,21 +43,22 @@ func (w *Client) Edit(p params.Values) error {
 		p["token"] = csrfToken
 	}
 
-	p.Set("action", "edit")
+	p["action"] = "edit"
 
 	resp, err := w.Post(p)
 	if err != nil {
 		return err
 	}
 
-	editResult, err := resp.GetPath("edit", "result").String()
+	editResult, err := resp.GetString("edit", "result")
 	if err != nil {
 		return fmt.Errorf("unable to assert 'result' field to type string\n")
 	}
 
 	if editResult != "Success" {
-		if captcha, ok := resp.Get("edit").CheckGet("captcha"); ok {
-			captchaBytes, err := captcha.Encode()
+		//if captcha, ok := resp.Get("edit").CheckGet("captcha"); ok {
+		if captcha, err := resp.GetObject("edit", "captcha"); err == nil {
+			captchaBytes, err := captcha.Marshal()
 			if err != nil {
 				return fmt.Errorf("error occured while creating error message: %s", err)
 			}
@@ -69,10 +70,11 @@ func (w *Client) Edit(p params.Values) error {
 			return captchaerr
 		}
 
-		return fmt.Errorf("unrecognized response: %v", resp.Get("edit"))
+		edit, _ := resp.GetValue("edit")
+		return fmt.Errorf("unrecognized response: %v", edit)
 	}
 
-	if _, ok := resp.Get("edit").CheckGet("nochange"); ok {
+	if _, err := resp.GetValue("edit", "nochange"); err == nil {
 		return ErrEditNoChange
 	}
 
@@ -129,19 +131,13 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 	// reversed normalized titles
 	// canonical -> inputted
 	denormalizedNames := make(map[string]string)
-
-	if normalizations, has := resp.Get("query").CheckGet("normalized"); has {
-		fixes, err := normalizations.Array()
-		if err != nil {
-			return nil, err
-		}
-
-		for i := 0; i < len(fixes); i++ {
-			from, err := normalizations.GetIndex(i).Get("from").String()
+	if normalizations, err := resp.GetObjectArray("query", "normalized"); err == nil {
+		for _, fix := range normalizations {
+			from, err := fix.GetString("from")
 			if err != nil {
 				return nil, err
 			}
-			to, err := normalizations.GetIndex(i).Get("to").String()
+			to, err := fix.GetString("to")
 			if err != nil {
 				return nil, err
 			}
@@ -149,7 +145,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 		}
 	}
 
-	pageIDs, err := resp.GetPath("query", "pageids").StringArray()
+	pageIDs, err := resp.GetStringArray("query", "pageids")
 	if err != nil {
 		return nil, err
 	}
@@ -157,14 +153,14 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 	for _, id := range pageIDs { // fill the pages
 		page := BriefRevision{PageID: id}
 
-		entry := resp.GetPath("query", "pages", id)
-		if entry == nil {
+		entry, err := resp.GetObject("query", "pages", id)
+		if err != nil {
 			return nil, fmt.Errorf("API error: expected page to be in pages array")
 		}
 
-		if _, noExists := entry.CheckGet("missing"); noExists {
+		if _, err := entry.GetValue("missing"); err == nil {
 			page.Error = ErrPageNotFound
-			title, err := entry.Get("title").String()
+			title, err := entry.GetString("title")
 			if err != nil {
 				return nil, err
 			}
@@ -172,24 +168,24 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 			continue
 		}
 
-		revs := entry.Get("revisions")
-		if revs == nil {
+		revs, err := entry.GetObjectArray("revisions")
+		if err != nil {
 			return nil, fmt.Errorf("API error: revision list not returned")
 		}
 
-		rev := revs.GetIndex(0)
+		rev := revs[0]
 
-		page.Content, err = rev.Get("*").String()
+		page.Content, err = rev.GetString("*")
 		if err != nil {
 			return nil, fmt.Errorf("unable to assert page content to string: %s", err)
 		}
 
-		page.Timestamp, err = rev.Get("timestamp").String()
+		page.Timestamp, err = rev.GetString("timestamp")
 		if err != nil {
 			return nil, fmt.Errorf("unable to assert timestamp to string: %s", err)
 		}
 
-		trueTitle, err := entry.Get("title").String()
+		trueTitle, err := entry.GetString("title")
 		if err != nil {
 			return nil, fmt.Errorf("API error: page entry does not have title field")
 		}
@@ -264,7 +260,7 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 		return "", err
 	}
 
-	token, err := resp.GetPath("query", "tokens", tokenName+"token").String()
+	token, err := resp.GetString("query", "tokens", tokenName+"token")
 	if err != nil {
 		// This really shouldn't happen.
 		return "", fmt.Errorf("error occured while converting token to string: %s", err)

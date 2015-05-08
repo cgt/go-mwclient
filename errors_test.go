@@ -3,7 +3,7 @@ package mwclient
 import (
 	"testing"
 
-	"github.com/bitly/go-simplejson"
+	"github.com/antonholmquist/jason"
 )
 
 type ErrorType int
@@ -57,7 +57,7 @@ func TestExtractAPIErrors(t *testing.T) {
 	}
 
 	for i, errtest := range errtests {
-		j, err := simplejson.NewJson(errtest.jsonInput)
+		j, err := jason.NewObjectFromBytes(errtest.jsonInput)
 		if err != nil {
 			panic("Invalid test data: bad JSON input")
 		}

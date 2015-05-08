@@ -72,7 +72,7 @@ Example
             fmt.Println(err)
         }
 
-        // Print the *simplejson.Json object.
+        // Print the *jason.Object
         fmt.Println(resp)
     }
 

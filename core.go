@@ -12,7 +12,7 @@ import (
 
 	"cgt.name/pkg/go-mwclient/params"
 
-	simplejson "github.com/bitly/go-simplejson"
+	"github.com/antonholmquist/jason"
 )
 
 // If you modify this package, please change the user agent.
@@ -224,17 +224,17 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 }
 
 // callJSON wraps the call method and encodes the JSON response
-// as a *simplejson.Json object. Furthermore, any API errors/warnings are
+// as a *jason.Object. Furthermore, any API errors/warnings are
 // extracted and returned as the error return value (unless an error occurs
 // during the API call or the parsing of the JSON response, in which case that
-// error will be returned and the *simplejson.Json return value will be nil).
-func (w *Client) callJSON(p params.Values, post bool) (*simplejson.Json, error) {
+// error will be returned and the *jason.Object return value will be nil).
+func (w *Client) callJSON(p params.Values, post bool) (*jason.Object, error) {
 	body, err := w.call(p, post)
 	if err != nil {
 		return nil, err
 	}
 
-	js, err := simplejson.NewJson(body)
+	js, err := jason.NewObjectFromBytes(body)
 	if err != nil {
 		return nil, err
 	}
@@ -243,10 +243,10 @@ func (w *Client) callJSON(p params.Values, post bool) (*simplejson.Json, error) 
 }
 
 // Get performs a GET request with the specified parameters and returns the
-// response as a *simplejson.Json object.
+// response as a *jason.Object.
 // Get will return any API errors and/or warnings (if no other errors occur)
 // as the error return value.
-func (w *Client) Get(p params.Values) (*simplejson.Json, error) {
+func (w *Client) Get(p params.Values) (*jason.Object, error) {
 	return w.callJSON(p, false)
 }
 
@@ -260,10 +260,10 @@ func (w *Client) GetRaw(p params.Values) ([]byte, error) {
 }
 
 // Post performs a POST request with the specified parameters and returns the
-// response as a *simplejson.Json object.
+// response as a *jason.Object.
 // Post will return any API errors and/or warnings (if no other errors occur)
 // as the error return value.
-func (w *Client) Post(p params.Values) (*simplejson.Json, error) {
+func (w *Client) Post(p params.Values) (*jason.Object, error) {
 	return w.callJSON(p, true)
 }
 
@@ -300,14 +300,14 @@ func (w *Client) Login(username, password string) error {
 			return err
 		}
 
-		lgResult, err := resp.Get("login").Get("result").String()
+		lgResult, err := resp.GetString("login", "result")
 		if err != nil {
 			return fmt.Errorf("invalid API response: unable to assert login result to string")
 		}
 
 		if lgResult != "Success" {
 			if lgResult == "NeedToken" {
-				lgToken, err := resp.Get("login").Get("token").String()
+				lgToken, err := resp.GetString("login", "token")
 				if err != nil {
 					return fmt.Errorf("invalid API response: unable to assert login token to string")
 				}

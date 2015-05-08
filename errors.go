@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bitly/go-simplejson"
+	"github.com/antonholmquist/jason"
 )
 
 // APIError represents a MediaWiki API error.
@@ -87,30 +87,31 @@ var ErrAPIBusy = errors.New("the API is too busy. Try again later")
 var ErrNoArgs = errors.New("no arguments passed")
 
 // extractAPIErrors extracts API errors or warnings from a given
-// *simplejson.Json object. If it finds an error, it will return an APIError.
+// *jason.Object. If it finds an error, it will return an APIError.
 // Otherwise it will look for warnings, and if it finds any it will return
 // it/them in an APIWarning.
-func extractAPIErrors(resp *simplejson.Json) error {
-	if e, ok := resp.CheckGet("error"); ok { // Check for errors
-		code, ok1 := e.CheckGet("code")
-		info, ok2 := e.CheckGet("info")
-		if !(ok1 && ok2) {
+func extractAPIErrors(resp *jason.Object) error {
+	if e, err := resp.GetObject("error"); err == nil { // Check for errors
+		code, err1 := e.GetString("code")
+		info, err2 := e.GetString("info")
+		if !(err1 == nil && err2 == nil) {
 			return errors.New("'error' object in API response is broken and stupid")
 		}
 		return APIError{
-			Code: code.MustString(),
-			Info: info.MustString(),
+			Code: code,
+			Info: info,
 		}
-	} else if w, ok := resp.CheckGet("warnings"); ok { // Check for warnings
+	} else if w, err := resp.GetObject("warnings"); err == nil { // Check for warnings
 		warnings := APIWarnings{}
 
-		wmap, err := w.Map()
-		if err != nil {
-			return errors.New("'warnings' object in API response is broken and stupid")
-		}
-		for module, v := range wmap {
-			info := v.(map[string]interface{})["*"].(string)
+		var wmap map[string]*jason.Value = w.Map()
+		for module, warningValue := range wmap {
+			warning, err := warningValue.Object()
+			if err != nil {
+				return errors.New("'warnings' object in API response is broken and stupid")
+			}
 
+			info, err := warning.GetString("*")
 			if strings.Contains(info, "\n") {
 				// There can be multiple warnings in one warning info field.
 				// If so, they are separated by a newline.

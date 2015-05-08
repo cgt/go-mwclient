@@ -3,8 +3,9 @@ package mwclient
 import (
 	"fmt"
 
+	"github.com/antonholmquist/jason"
+
 	"cgt.name/pkg/go-mwclient/params"
-	"github.com/bitly/go-simplejson"
 )
 
 // Query provides a simple interface to deal with query continuations.
@@ -35,7 +36,7 @@ import (
 type Query struct {
 	mwc    *Client
 	params params.Values
-	resp   *simplejson.Json
+	resp   *jason.Object
 	err    error
 }
 
@@ -45,7 +46,7 @@ func (q Query) Err() error {
 }
 
 // Resp returns the API response retrieved by the Next method.
-func (q Query) Resp() *simplejson.Json {
+func (q Query) Resp() *jason.Object {
 	return q.resp
 }
 
@@ -73,18 +74,14 @@ func (q *Query) Next() (done bool) {
 		return q.err == nil
 	}
 
-	cont, ok := q.resp.CheckGet("continue")
-	if !ok {
-		return false
-	}
-	cm, err := cont.Map()
+	cont, err := q.resp.GetObject("continue")
 	if err != nil {
-		q.err = fmt.Errorf("response processing error: %v", err)
 		return false
 	}
-	for k, v := range cm {
-		value, ok := v.(string)
-		if !ok {
+	contMap := cont.Map()
+	for k, v := range contMap {
+		value, err := v.String()
+		if err != nil {
 			q.err = fmt.Errorf("response processing error: %v", err)
 			return false
 		}
