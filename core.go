@@ -36,7 +36,6 @@ type (
 	// Client represents the API client.
 	Client struct {
 		httpc     *http.Client
-		cjar      *cookiejar.Jar
 		apiURL    *url.URL
 		UserAgent string
 		Tokens    map[string]string
@@ -91,7 +90,11 @@ type sleeper func(d time.Duration)
 // Client.Maxlag.On to true. The default timeout is 5 seconds and the default
 // amount of retries is 3.
 func New(inURL, userAgent string) (*Client, error) {
-	cjar, _ := cookiejar.New(nil)
+	cjar, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	apiurl, err := url.Parse(inURL)
 	if err != nil {
 		return nil, err
@@ -107,7 +110,6 @@ func New(inURL, userAgent string) (*Client, error) {
 			CheckRedirect: nil,
 			Jar:           cjar,
 		},
-		cjar:      cjar,
 		apiURL:    apiurl,
 		UserAgent: fmt.Sprintf("%s %s", userAgent, DefaultUserAgent),
 		Tokens:    map[string]string{},
@@ -174,11 +176,6 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 
-		// Set any old cookies on the request
-		for _, cookie := range w.cjar.Cookies(w.apiURL) {
-			req.AddCookie(cookie)
-		}
-
 		if w.debug != nil {
 			reqdump, err := httputil.DumpRequestOut(req, true)
 			if err != nil {
@@ -203,9 +200,6 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 				w.debug.Write(respdump)
 			}
 		}
-
-		// Store any new cookies
-		w.cjar.SetCookies(req.URL, resp.Cookies())
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
