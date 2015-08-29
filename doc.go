@@ -70,4 +70,4 @@ In that case, the error will be the variable mwclient.ErrAPIBusy.
 Other methods than the core ones (i.e., other methods than Get and Post)
 may return other errors.
 */
-package mwclient // import "cgt.name/pkg/go-mwclient
+package mwclient // import "cgt.name/pkg/go-mwclient"
