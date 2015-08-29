@@ -34,7 +34,7 @@ import (
 // See https://www.mediawiki.org/wiki/API:Query for more details on how to
 // query the MediaWiki API.
 type Query struct {
-	mwc    *Client
+	w      *Client
 	params params.Values
 	resp   *jason.Object
 	err    error
@@ -56,7 +56,7 @@ func (w *Client) NewQuery(p params.Values) *Query {
 	p.Set("continue", "")
 
 	return &Query{
-		mwc:    w,
+		w:      w,
 		params: p,
 		resp:   nil,
 		err:    nil,
@@ -70,7 +70,7 @@ func (w *Client) NewQuery(p params.Values) *Query {
 func (q *Query) Next() (done bool) {
 	if q.resp == nil {
 		// first call to Next
-		q.resp, q.err = q.mwc.Get(q.params)
+		q.resp, q.err = q.w.Get(q.params)
 		return q.err == nil
 	}
 
@@ -88,6 +88,6 @@ func (q *Query) Next() (done bool) {
 		q.params.Set(k, value)
 	}
 
-	q.resp, q.err = q.mwc.Get(q.params)
+	q.resp, q.err = q.w.Get(q.params)
 	return q.err == nil
 }
