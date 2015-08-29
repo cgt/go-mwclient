@@ -2,9 +2,11 @@ package mwclient
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -44,6 +46,7 @@ type (
 		// the value 'user' or 'bot', respectively. To disable such assertions,
 		// set Assert to AssertNone (set by default by New()).
 		Assert assertType
+		debug  io.Writer
 	}
 
 	// Maxlag contains maxlag configuration for Client.
@@ -69,6 +72,11 @@ type (
 		PageID    string
 	}
 )
+
+// SetDebug takes an io.Writer to which HTTP requests and responses
+// made by Client will be dumped with httputil to as they are sent and
+// received. To disable, set to nil (default).
+func (w *Client) SetDebug(wr io.Writer) { w.debug = wr }
 
 type sleeper func(d time.Duration)
 
@@ -171,12 +179,30 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 			req.AddCookie(cookie)
 		}
 
+		if w.debug != nil {
+			reqdump, err := httputil.DumpRequestOut(req, true)
+			if err != nil {
+				w.debug.Write([]byte(fmt.Sprintf("Err dumping request: %v\n", err)))
+			} else {
+				w.debug.Write(reqdump)
+			}
+		}
+
 		// Make the request
 		resp, err := w.httpc.Do(req)
 		if err != nil {
 			return nil, fmt.Errorf("error occured during HTTP request: %v", err)
 		}
 		defer resp.Body.Close()
+
+		if w.debug != nil {
+			respdump, err := httputil.DumpResponse(resp, true)
+			if err != nil {
+				w.debug.Write([]byte(fmt.Sprintf("Err dumping response: %v\n", err)))
+			} else {
+				w.debug.Write(respdump)
+			}
+		}
 
 		// Store any new cookies
 		w.cjar.SetCookies(req.URL, resp.Cookies())
