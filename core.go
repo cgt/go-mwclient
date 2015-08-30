@@ -123,14 +123,14 @@ func New(inURL, userAgent string) (*Client, error) {
 	}, nil
 }
 
-// call makes a GET or POST request to the Mediawiki API (depending on whether
-// the post argument is true or false (if true, it will POST) and returns the
-// JSON response as a []byte.
+// call makes a GET or POST request to the Mediawiki API depending on whether
+// the post argument is true or false (if true, it will POST) and returns
+// the response body as an io.ReadCloser. Remember to close it when done with it.
 // call supports the maxlag parameter and will respect it if it is turned on
 // in the Client it operates on.
-func (w *Client) call(p params.Values, post bool) ([]byte, error) {
+func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 	// The main functionality in this method is in a closure to simplify maxlag handling.
-	callf := func() ([]byte, error) {
+	callf := func() (io.ReadCloser, error) {
 		p.Set("format", "json")
 		p.Set("utf8", "")
 
@@ -190,7 +190,6 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error occured during HTTP request: %v", err)
 		}
-		defer resp.Body.Close()
 
 		if w.debug != nil {
 			respdump, err := httputil.DumpResponse(resp, true)
@@ -201,21 +200,26 @@ func (w *Client) call(p params.Values, post bool) ([]byte, error) {
 			}
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read HTTP response body: %v", err)
-		}
-
 		// Handle maxlag
 		if resp.Header.Get("X-Database-Lag") != "" {
-			retryAfter, _ := strconv.Atoi(resp.Header.Get("Retry-After"))
+			defer resp.Body.Close()
+			retryAfter, err := strconv.Atoi(resp.Header.Get("Retry-After"))
+			if err != nil {
+				return nil, err
+			}
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return nil, err
+			}
+
 			return nil, maxLagError{
 				string(body),
 				retryAfter,
 			}
 		}
 
-		return body, nil
+		return resp.Body, nil
 
 	}
 
@@ -253,13 +257,34 @@ func (w *Client) callJSON(p params.Values, post bool) (*jason.Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	if body != nil {
+		defer body.Close()
+	}
 
-	js, err := jason.NewObjectFromBytes(body)
+	js, err := jason.NewObjectFromReader(body)
 	if err != nil {
 		return nil, err
 	}
 
 	return js, extractAPIErrors(js)
+}
+
+// callRaw wraps the call method and reads the response body into a []byte.
+func (w *Client) callRaw(p params.Values, post bool) ([]byte, error) {
+	body, err := w.call(p, post)
+	if err != nil {
+		return nil, err
+	}
+	if body != nil {
+		defer body.Close()
+	}
+
+	buf, err := ioutil.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf, nil
 }
 
 // Get performs a GET request with the specified parameters and returns the
@@ -276,7 +301,7 @@ func (w *Client) Get(p params.Values) (*jason.Object, error) {
 // GetRaw is useful when you want to decode the JSON into a struct for easier
 // and safer use.
 func (w *Client) GetRaw(p params.Values) ([]byte, error) {
-	return w.call(p, false)
+	return w.callRaw(p, false)
 }
 
 // Post performs a POST request with the specified parameters and returns the
@@ -293,7 +318,7 @@ func (w *Client) Post(p params.Values) (*jason.Object, error) {
 // PostRaw is useful when you want to decode the JSON into a struct for easier
 // and safer use.
 func (w *Client) PostRaw(p params.Values) ([]byte, error) {
-	return w.call(p, true)
+	return w.callRaw(p, true)
 }
 
 // Login attempts to login using the provided username and password.
