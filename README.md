@@ -18,9 +18,8 @@ Documentation:
 
 ## API stability
 
-At this time the public API is not guaranteed to be stable. If I discover a
-better way of doing something that breaks backwards compatibility, I will
-break it.
+mwclient's API seems to have stabilized. It probably won't change significantly,
+if at all.
 
 ## Example
 
