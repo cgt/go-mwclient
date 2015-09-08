@@ -18,7 +18,7 @@ Documentation:
 
 ## API stability
 
-mwclient's API seems to have stabilized. It probably won't change significantly,
+go-mwclient's API seems to have stabilized. It probably won't change significantly,
 if at all.
 
 ## Example
