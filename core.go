@@ -324,50 +324,40 @@ func (w *Client) PostRaw(p params.Values) ([]byte, error) {
 // Login attempts to login using the provided username and password.
 // Login sets Client.Assert to AssertUser if login is successful.
 func (w *Client) Login(username, password string) error {
-
-	// By using a closure, we avoid requiring the public Login method to have
-	// a token parameter while also avoiding repeating ourselves.
-	// loginFunc must be predefined because it calls itself.
-	var loginFunc func(token string) error
-
-	loginFunc = func(token string) error {
-		v := params.Values{
-			"action":     "login",
-			"lgname":     username,
-			"lgpassword": password,
-		}
-		if token != "" {
-			v.Set("lgtoken", token)
-		}
-
-		resp, err := w.Post(v)
-		if err != nil {
-			return err
-		}
-
-		lgResult, err := resp.GetString("login", "result")
-		if err != nil {
-			return fmt.Errorf("invalid API response: unable to assert login result to string")
-		}
-
-		if lgResult != "Success" {
-			if lgResult == "NeedToken" {
-				lgToken, err := resp.GetString("login", "token")
-				if err != nil {
-					return fmt.Errorf("invalid API response: unable to assert login token to string")
-				}
-				return loginFunc(lgToken)
-			}
-			return APIError{Code: lgResult}
-		}
-
-		if w.Assert == AssertNone {
-			w.Assert = AssertUser
-		}
-		return nil
+	v := params.Values{
+		"action": "query",
+		"meta": "tokens",
+		"type": "login",
 	}
-
-	return loginFunc("")
+	resp, err := w.Post(v)
+	if err != nil {
+		return err
+	}
+	token, err := resp.GetString("query", "tokens", "logintoken")
+	if err != nil {
+		return fmt.Errorf("invalid API response: unable to assert login token to string")
+	}
+	v = params.Values{
+		"action":     "login",
+		"lgname":     username,
+		"lgpassword": password,
+		"lgtoken": token,
+	}
+	resp, err = w.Post(v)
+	if err != nil {
+		return err
+	}
+	lgResult, err := resp.GetString("login", "result")
+	if err != nil {
+		return fmt.Errorf("invalid API response: unable to assert login result to string")
+	}
+	if lgResult != "Success" {
+		return APIError{Code: lgResult}
+	}
+	if w.Assert == AssertNone {
+		w.Assert = AssertUser
+	}
+	return nil
 }
 
 // Logout sends a logout request to the API.
