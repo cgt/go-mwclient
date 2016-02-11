@@ -324,26 +324,17 @@ func (w *Client) PostRaw(p params.Values) ([]byte, error) {
 // Login attempts to login using the provided username and password.
 // Login sets Client.Assert to AssertUser if login is successful.
 func (w *Client) Login(username, password string) error {
-	v := params.Values{
-		"action": "query",
-		"meta": "tokens",
-		"type": "login",
-	}
-	resp, err := w.Post(v)
+	token, err := w.GetToken(LoginToken)
 	if err != nil {
 		return err
 	}
-	token, err := resp.GetString("query", "tokens", "logintoken")
-	if err != nil {
-		return fmt.Errorf("invalid API response: unable to assert login token to string")
-	}
-	v = params.Values{
+	v := params.Values{
 		"action":     "login",
 		"lgname":     username,
 		"lgpassword": password,
-		"lgtoken": token,
+		"lgtoken":    token,
 	}
-	resp, err = w.Post(v)
+	resp, err := w.Post(v)
 	if err != nil {
 		return err
 	}

@@ -235,6 +235,7 @@ const (
 	SetGlobalAccountStatusToken = "setglobalaccountstatus"
 	UserRightsToken             = "userrights"
 	WatchToken                  = "watch"
+	LoginToken                  = "login"
 )
 
 // GetToken returns a specified token (and an error if this is not possible).
@@ -244,8 +245,11 @@ const (
 // The token consts (e.g., mwclient.CSRFToken) should be used
 // as the tokenName argument.
 func (w *Client) GetToken(tokenName string) (string, error) {
-	if _, ok := w.Tokens[tokenName]; ok {
-		return w.Tokens[tokenName], nil
+	// Always obtain a fresh login token
+	if tokenName != LoginToken {
+		if _, ok := w.Tokens[tokenName]; ok {
+			return w.Tokens[tokenName], nil
+		}
 	}
 
 	p := params.Values{
@@ -265,6 +269,8 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 		// This really shouldn't happen.
 		return "", fmt.Errorf("error occured while converting token to string: %s", err)
 	}
-	w.Tokens[tokenName] = token
+	if tokenName != LoginToken {
+		w.Tokens[tokenName] = token
+	}
 	return token, nil
 }

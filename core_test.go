@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,101 +26,6 @@ func setup(handler func(w http.ResponseWriter, r *http.Request)) (*httptest.Serv
 	return server, client
 }
 
-func TestLogin(t *testing.T) {
-	loginHandler := func(w http.ResponseWriter, r *http.Request) {
-		err := r.ParseForm()
-		if err != nil {
-			panic("Bad HTTP form")
-		}
-
-		// This is really difficult to read. Sorry...
-		// Possible errors: NoName, NeedToken, WrongToken, EmptyPass, WrongPass, NotExists
-		if r.PostForm.Get("lgname") == "" {
-			fmt.Fprint(w, `{"login":{"result":"NoName"}}`)
-		} else if r.PostForm.Get("lgtoken") == "" {
-			fmt.Fprint(w, `{"login":{"result":"NeedToken","token":"7aaaf636d99d46cf2656561c5d099ad7","cookieprefix":"dawiki","sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`)
-		} else {
-			if r.PostForm.Get("lgtoken") != "7aaaf636d99d46cf2656561c5d099ad7" {
-				fmt.Fprint(w, `{"login":{"result":"WrongToken"}}`)
-			} else {
-				if r.PostForm.Get("lgpassword") == "" {
-					fmt.Fprint(w, `{"login":{"result":"EmptyPass"}}`)
-				} else {
-					if r.PostForm.Get("lgname") == "username" {
-						if r.PostForm.Get("lgpassword") == "password" {
-							// success
-							fmt.Fprint(w, `{"login":{"result":"Success","lguserid":1,"lgusername":"username","lgtoken":"7aaaf636d99d46cf2656561c5d099ad7","cookieprefix":"dawiki","sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`)
-						} else {
-							fmt.Fprint(w, `{"login":{"result":"WrongPass"}}`)
-						}
-					} else {
-						fmt.Fprint(w, `{"login":{"result":"NotExists"}}`)
-					}
-				}
-			}
-		}
-
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	}
-
-	server, client := setup(loginHandler)
-	defer server.Close()
-
-	// good
-	if err := client.Login("username", "password"); err != nil {
-		t.Error("passed good login. expected no error, but received error:", err)
-	}
-
-	// bad
-	if err := client.Login("", ""); err == nil {
-		t.Error("passed empty user. expected NoName error, but no error received")
-	} else {
-		if apiErr, ok := err.(APIError); ok {
-			if apiErr.Code != "NoName" {
-				t.Errorf("expected NoName error, received: %v", apiErr.Code)
-			} else {
-				t.Log(apiErr.Code)
-			}
-		}
-	}
-
-	if err := client.Login("username", ""); err == nil {
-		t.Error("passed empty password. expected EmptyPass error, but no error received")
-	} else {
-		if apiErr, ok := err.(APIError); ok {
-			if apiErr.Code != "EmptyPass" {
-				t.Errorf("expected EmptyPass error, received: %v", apiErr.Code)
-			} else {
-				t.Log(apiErr.Code)
-			}
-		}
-	}
-
-	if err := client.Login("badusername", "password"); err == nil {
-		t.Error("passed bad user. expected NotExists error, but no error received")
-	} else {
-		if apiErr, ok := err.(APIError); ok {
-			if apiErr.Code != "NotExists" {
-				t.Errorf("expected NotExists error, received: %v", apiErr.Code)
-			} else {
-				t.Log(apiErr.Code)
-			}
-		}
-	}
-
-	if err := client.Login("username", "badpassword"); err == nil {
-		t.Error("passed bad password. expected WrongPass error, but no error received")
-	} else {
-		if apiErr, ok := err.(APIError); ok {
-			if apiErr.Code != "WrongPass" {
-				t.Errorf("expected WrongPass error, received: %v", apiErr.Code)
-			} else {
-				t.Log(apiErr.Code)
-			}
-		}
-	}
-}
-
 func TestLoginToken(t *testing.T) {
 	loginHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
@@ -127,27 +33,78 @@ func TestLoginToken(t *testing.T) {
 			panic("Bad HTTP form")
 		}
 
-		lgtoken := "7aaaf636d99d46cf2656561c5d099ad7"
-
-		if r.PostForm.Get("lgtoken") == "" {
-			fmt.Fprintf(w,
-				`{"login":{"result":"NeedToken","token":"%s",
-				"cookieprefix":"dawiki",
-				"sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
-				lgtoken)
-		} else {
-			if got := r.PostForm.Get("lgtoken"); got == lgtoken {
-				fmt.Fprintf(w,
-					`{"login":{"result":"Success","lguserid":1,
-					"lgusername":"username","lgtoken":"%s","cookieprefix":"dawiki",
-					"sessionid":"e9bffbfa38636ac9f550b5d37fb25d80"}}`,
-					lgtoken)
-			} else {
-				t.Fatalf("sent lgtoken '%s', got '%s'", lgtoken, got)
-			}
-		}
-
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		lgtoken := `b53b3ef3792bdaa1caff44fca1nb240756bc4eeb+\\`
+		lgtokenExpected := `b53b3ef3792bdaa1caff44fca1nb240756bc4eeb+\`
+
+		if q := r.URL.Query(); q.Get("action") == "query" && q.Get("meta") == "tokens" {
+			// handle token request
+			tokenTypes := strings.Split(q["type"][0], "|")
+			foundLogin := false
+			for _, t := range tokenTypes {
+				if t == "login" {
+					foundLogin = true
+				}
+			}
+			if !foundLogin {
+				t.Errorf("token requested, but not logintoken: %s", q["type"][0])
+			}
+			_, err := fmt.Fprintf(
+				w,
+				`{"batchcomplete":"","query":{"tokens":{"logintoken":"%s"}}}`,
+				lgtoken)
+			if err != nil {
+				panic(err)
+			}
+		} else if r.Method == "POST" && r.PostFormValue("action") == "login" {
+			// handle login request
+			var errs []string
+			fail := false
+			if lgname := r.PostFormValue("lgname"); lgname != "username" {
+				fail = true
+				errs = append(errs,
+					fmt.Sprintf(
+						"expected \"username\" for lgname, got \"%s\"",
+						lgname))
+			}
+			if lgpw := r.PostFormValue("lgpassword"); lgpw != "password" {
+				fail = true
+				errs = append(errs,
+					fmt.Sprintf(
+						"expected \"password\" for lgpassword, got \"%s\"",
+						lgpw))
+			}
+			if lgtok := r.PostFormValue("lgtoken"); lgtok != lgtokenExpected {
+				fail = true
+				errs = append(errs,
+					fmt.Sprintf(
+						"expected \"%s\" for lgtoken, got \"%s\"",
+						lgtokenExpected,
+						lgtok))
+			}
+
+			if fail {
+				if len(errs) > 1 {
+					errMsg := strings.Join(errs, "; ")
+					t.Error(errMsg)
+				} else if len(errs) == 1 {
+					t.Error(errs[0])
+				} else {
+					panic("TestLoginToken: fail == true, but empty errs")
+				}
+			}
+
+			fmt.Fprint(
+				w,
+				`{"login":{"result":"Success","lguserid": 1,
+				"lgusername":"username",
+				"lgtoken":"32db2c4f4f5dca04a72e0a0913b27c25",
+				"cookieprefix":"commonswiki",
+				"sessionid":"vaggusqhjuh2m6u1rbchoaphm9ie19l"}}`)
+		} else {
+			t.Errorf("Unexpected request: %s", r.URL)
+		}
 	}
 
 	server, client := setup(loginHandler)
