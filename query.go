@@ -13,7 +13,7 @@ import (
 // Once you have instantiated a Query, call the Next method to retrieve the
 // first set of results from the API.
 // If Next returns false, then either you have received all the results for the
-// query or an error occured. If an error occurs, it will be available through
+// query or an error occurred. If an error occurs, it will be available through
 // the Err method.
 // If Next returns true, then there are more results to be retrieved and another
 // call to Next will retrieve the next results.

@@ -112,6 +112,9 @@ func extractAPIErrors(resp *jason.Object) error {
 			}
 
 			info, err := warning.GetString("*")
+			if err != nil {
+				return errors.New("'*' object in API response is broken and stupid")
+			}
 			if strings.Contains(info, "\n") {
 				// There can be multiple warnings in one warning info field.
 				// If so, they are separated by a newline.
