@@ -15,6 +15,7 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 
 	"github.com/antonholmquist/jason"
+	"github.com/mrjones/oauth"
 )
 
 // If you modify this package, please change the user agent.
@@ -323,6 +324,7 @@ func (w *Client) PostRaw(p params.Values) ([]byte, error) {
 
 // Login attempts to login using the provided username and password.
 // Login sets Client.Assert to AssertUser if login is successful.
+// Do not use Login with OAuth.
 func (w *Client) Login(username, password string) error {
 	token, err := w.GetToken(LoginToken)
 	if err != nil {
@@ -354,7 +356,30 @@ func (w *Client) Login(username, password string) error {
 // Logout sends a logout request to the API.
 // Logout does not take into account whether or not a user is actually logged in.
 // Logout sets Client.Assert to AssertNone.
+// Do not use Logout with OAuth.
 func (w *Client) Logout() {
 	w.Assert = AssertNone
 	w.Get(params.Values{"action": "logout"})
+}
+
+// OAuth configures OAuth authentication. After calling OAuth, future requests
+// will be authenticated. OAuth does not make any API calls, so authentication
+// failures will appear in response to the first API call after OAuth has
+// been configured. Do not mix use of OAuth with Login/Logout.
+// Unlike Login, OAuth does not configure a rights assertion level.
+func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret string) error {
+	consumer := oauth.NewConsumer(consumerToken, consumerSecret, oauth.ServiceProvider{})
+	access := oauth.AccessToken{
+		Token:  accessToken,
+		Secret: accessSecret,
+	}
+
+	httpc, err := consumer.MakeHttpClient(&access)
+	if err != nil {
+		return err
+	}
+	httpc.Jar = w.httpc.Jar
+	w.httpc = httpc
+
+	return nil
 }
