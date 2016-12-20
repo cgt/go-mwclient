@@ -90,11 +90,13 @@ type sleeper func(d time.Duration)
 
 // New returns a pointer to an initialized Client object. If the provided API URL
 // is invalid (as defined by the net/url package), then it will return nil and
-// the error from url.Parse(). If the user agent is empty, this will also result
-// in an error. The userAgent parameter will be combined with the
-// DefaultUserAgent const to form a meaningful user agent. If this is undesired,
-// the UserAgent field on the Client is exported and can therefore be set
-// manually.
+// the error from url.Parse().
+//
+// The userAgent parameter will be joined with the DefaultUserAgent const and
+// used as HTTP User-Agent. If userAgent is an empty string, DefaultUserAgent
+// will be used by itself as User-Agent. The User-Agent set by New can be
+// overriden by setting the UserAgent field on the returned *Client.
+//
 // New disables maxlag by default. To enable it, simply set
 // Client.Maxlag.On to true. The default timeout is 5 seconds and the default
 // amount of retries is 3.
@@ -109,8 +111,11 @@ func New(inURL, userAgent string) (*Client, error) {
 		return nil, err
 	}
 
-	if strings.TrimSpace(userAgent) == "" {
-		return nil, fmt.Errorf("userAgent parameter empty")
+	var ua string
+	if userAgent != "" {
+		ua = userAgent + " " + DefaultUserAgent
+	} else {
+		ua = DefaultUserAgent
 	}
 
 	return &Client{
@@ -120,7 +125,7 @@ func New(inURL, userAgent string) (*Client, error) {
 			Jar:           cjar,
 		},
 		apiURL:    apiurl,
-		UserAgent: fmt.Sprintf("%s %s", userAgent, DefaultUserAgent),
+		UserAgent: ua,
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
 			On:      false,
@@ -229,7 +234,6 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		}
 
 		return resp.Body, nil
-
 	}
 
 	if w.Maxlag.On {
