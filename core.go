@@ -18,7 +18,9 @@ import (
 	"github.com/mrjones/oauth"
 )
 
-// If you modify this package, please change the user agent.
+// If you modify this package, please change DefaultUserAgent.
+
+// DefaultUserAgent is the HTTP User-Agent used by default.
 const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 
 type assertType uint8
@@ -36,11 +38,16 @@ const (
 type (
 	// Client represents the API client.
 	Client struct {
-		httpc     *http.Client
-		apiURL    *url.URL
+		httpc  *http.Client
+		apiURL *url.URL
+		// HTTP user agent
 		UserAgent string
-		Tokens    map[string]string
-		Maxlag    Maxlag
+		// API token cache.
+		// Maps from name of token (e.g., "csrf") to token value.
+		// Use GetToken to obtain tokens.
+		Tokens map[string]string
+		// Maxlag contains maxlag configuration for Client.
+		Maxlag Maxlag
 		// If Assert is assigned the value of consts AssertUser or AssertBot,
 		// the 'assert' parameter will be added to API requests with
 		// the value 'user' or 'bot', respectively. To disable such assertions,
@@ -78,6 +85,7 @@ type (
 // received. To disable, set to nil (default).
 func (w *Client) SetDebug(wr io.Writer) { w.debug = wr }
 
+// sleeper is used for mocking time.Sleep.
 type sleeper func(d time.Duration)
 
 // New returns a pointer to an initialized Client object. If the provided API URL
