@@ -18,8 +18,8 @@ Documentation:
 
 ## API stability
 
-go-mwclient's API seems to have stabilized. It probably won't change significantly,
-if at all.
+December 2016: A stable version will be tagged soon.
+See https://github.com/cgt/go-mwclient/issues/7.
 
 ## Example
 
