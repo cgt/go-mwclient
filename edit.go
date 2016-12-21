@@ -95,6 +95,8 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 	return page.Content, page.Timestamp, page.Error
 }
 
+// TODO: refactor getPages to be compatible with formatversion=2
+
 // getPages is just like getPage, but performs a multi-query so that
 // only one network call will be used to get the contents of many pages.
 // Maps the input name onto a BriefRevision result.
@@ -175,7 +177,6 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 		rev := revs[0]
 
-		// TODO: fix * for formatversion=2
 		page.Content, err = rev.GetString("*")
 		if err != nil {
 			return nil, fmt.Errorf("unable to assert page content to string: %s", err)
