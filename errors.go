@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/antonholmquist/jason"
 )
@@ -90,45 +89,33 @@ var ErrNoArgs = errors.New("no arguments passed")
 // *jason.Object. If it finds an error, it will return an APIError.
 // Otherwise it will look for warnings, and if it finds any it will return
 // it/them in an APIWarning.
+// extractAPIErrors is not compatible with MWAPI formatversion=1.
 func extractAPIErrors(resp *jason.Object) error {
-	if e, err := resp.GetObject("error"); err == nil { // Check for errors
+	if e, err := resp.GetObject("error"); err == nil {
 		code, err1 := e.GetString("code")
 		info, err2 := e.GetString("info")
 		if !(err1 == nil && err2 == nil) {
-			return errors.New("'error' object in API response is broken and stupid")
+			return fmt.Errorf("extractAPIErrors: 'error' object does not contain expected 'code' and 'info': %v", e)
 		}
 		return APIError{
 			Code: code,
 			Info: info,
 		}
-	} else if w, err := resp.GetObject("warnings"); err == nil { // Check for warnings
-		warnings := APIWarnings{}
+	}
 
-		// With formatversion=2, the warning message will be under
-		// 'warnings.query.warnings' rather than 'warnings.query.*'.
-		// TODO: Fix when switching to formatversion=2 by default.
-
-		var wmap map[string]*jason.Value = w.Map()
-		for module, warningValue := range wmap {
+	if w, err := resp.GetObject("warnings"); err == nil {
+		var warnings APIWarnings
+		for module, warningValue := range w.Map() {
 			warning, err := warningValue.Object()
 			if err != nil {
-				return errors.New("'warnings' object in API response is broken and stupid")
+				return fmt.Errorf("extractAPIErrors: %v: %v", err, warningValue)
 			}
 
-			info, err := warning.GetString("*")
+			info, err := warning.GetString("warnings")
 			if err != nil {
-				return errors.New("'*' object in API response is broken and stupid")
+				return fmt.Errorf("extractAPIErrors: %v: %v", err, warning)
 			}
-			if strings.Contains(info, "\n") {
-				// There can be multiple warnings in one warning info field.
-				// If so, they are separated by a newline.
-				// Split the warning string into two warnings and add them separately.
-				for _, warn := range strings.Split(info, "\n") {
-					warnings = append(warnings, APIWarnings{{Module: module, Info: warn}}...)
-				}
-			} else {
-				warnings = append(warnings, APIWarnings{{module, info}}...)
-			}
+			warnings = append(warnings, APIWarnings{{module, info}}...)
 		}
 
 		return warnings
