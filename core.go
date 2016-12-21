@@ -357,7 +357,11 @@ func (w *Client) Login(username, password string) error {
 		return fmt.Errorf("invalid API response: unable to assert login result to string")
 	}
 	if lgResult != "Success" {
-		return APIError{Code: lgResult}
+		apierr := APIError{Code: lgResult}
+		if reason, err := resp.GetString("login", "reason"); err == nil {
+			apierr.Info = reason
+		}
+		return apierr
 	}
 	if w.Assert == AssertNone {
 		w.Assert = AssertUser
