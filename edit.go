@@ -56,7 +56,6 @@ func (w *Client) Edit(p params.Values) error {
 	}
 
 	if editResult != "Success" {
-		//if captcha, ok := resp.Get("edit").CheckGet("captcha"); ok {
 		if captcha, err := resp.GetObject("edit", "captcha"); err == nil {
 			captchaBytes, err := captcha.Marshal()
 			if err != nil {
