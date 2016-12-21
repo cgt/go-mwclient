@@ -51,6 +51,7 @@ func TestQueryValues(t *testing.T) {
 		t.Errorf("second Get(bar) = %q, want %q", g, e)
 	}
 }
+
 func TestQueryValues_Add(t *testing.T) {
 	v := Values{
 		"foo": "a",
@@ -77,5 +78,44 @@ func TestQueryValues_Add(t *testing.T) {
 	if g := v.Get("baz"); g != "a|b" {
 		t.Errorf("Expected a|b, got %v", g)
 	}
+}
 
+func TestQueryValues_AddRange_Append(t *testing.T) {
+	v := make(Values)
+	v.Add("foo", "bar")
+	v.AddRange("foo", "quux", "x", "baz")
+
+	if g := v.Get("foo"); g != "bar|quux|x|baz" {
+		t.Errorf("expected bar|quux|x|baz, got %v", g)
+	}
+}
+
+func TestQueryValues_AddRange_Empty(t *testing.T) {
+	v := make(Values)
+	v.AddRange("foo", "bar", "quux", "x")
+
+	if g := v.Get("foo"); g != "bar|quux|x" {
+		t.Errorf("expected bar|quux|x, got %v", g)
+	}
+}
+
+// TestQueryValues_Add_Eq_AddRange tests that successive calls to Add
+// have the same result as one call with the same parameters to AddRange.
+func TestQueryValues_Add_Eq_AddRange(t *testing.T) {
+	var (
+		a = make(Values)
+		b = make(Values)
+	)
+
+	a.Add("foo", "bar")
+	a.Add("foo", "quux")
+	a.Add("foo", "x")
+
+	b.AddRange("foo", "bar", "quux", "x")
+
+	ae := a.Encode()
+	be := b.Encode()
+	if ae != be {
+		t.Errorf("a != b. a='%s', b='%s'", ae, be)
+	}
 }

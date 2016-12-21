@@ -114,12 +114,10 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 		"continue":     "",
 	}
 
-	for _, identifier := range pageIDsOrNames {
-		if areNames {
-			p.Add("titles", identifier)
-		} else {
-			p.Add("pageids", identifier)
-		}
+	if areNames {
+		p.AddRange("titles", pageIDsOrNames...)
+	} else {
+		p.AddRange("pageids", pageIDsOrNames...)
 	}
 
 	resp, err := w.Get(p)
