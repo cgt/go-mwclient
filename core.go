@@ -340,7 +340,6 @@ func (w *Client) PostRaw(p params.Values) ([]byte, error) {
 }
 
 // Login attempts to login using the provided username and password.
-// Login sets Client.Assert to AssertUser if login is successful.
 // Do not use Login with OAuth.
 func (w *Client) Login(username, password string) error {
 	token, err := w.GetToken(LoginToken)
@@ -373,10 +372,10 @@ func (w *Client) Login(username, password string) error {
 
 // Logout sends a logout request to the API.
 // Logout does not take into account whether or not a user is actually logged in.
-// Logout sets Client.Assert to AssertNone.
 // Do not use Logout with OAuth.
-func (w *Client) Logout() {
-	w.Get(params.Values{"action": "logout"})
+func (w *Client) Logout() error {
+	_, err := w.GetRaw(params.Values{"action": "logout"})
+	return err
 }
 
 // OAuth configures OAuth authentication. After calling OAuth, future requests
