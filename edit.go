@@ -73,7 +73,7 @@ func (w *Client) Edit(p params.Values) error {
 		return fmt.Errorf("unrecognized response: %v", edit)
 	}
 
-	if _, err := resp.GetValue("edit", "nochange"); err == nil {
+	if nochange, err := resp.GetBoolean("edit", "nochange"); err == nil && nochange {
 		return ErrEditNoChange
 	}
 
