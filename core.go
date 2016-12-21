@@ -382,7 +382,6 @@ func (w *Client) Logout() error {
 // will be authenticated. OAuth does not make any API calls, so authentication
 // failures will appear in response to the first API call after OAuth has
 // been configured. Do not mix use of OAuth with Login/Logout.
-// Unlike Login, OAuth does not configure a rights assertion level.
 func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret string) error {
 	consumer := oauth.NewConsumer(consumerToken, consumerSecret, oauth.ServiceProvider{})
 	access := oauth.AccessToken{

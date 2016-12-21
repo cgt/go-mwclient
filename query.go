@@ -9,14 +9,20 @@ import (
 )
 
 // Query provides a simple interface to deal with query continuations.
-// A Query should be instantiated through the NewQuery method on the Client type.
-// Once you have instantiated a Query, call the Next method to retrieve the
-// first set of results from the API.
-// If Next returns false, then either you have received all the results for the
-// query or an error occurred. If an error occurs, it will be available through
-// the Err method.
-// If Next returns true, then there are more results to be retrieved and another
-// call to Next will retrieve the next results.
+//
+// A Query should be instantiated through the NewQuery method on the
+// Client type. Once you have instantiated a Query, call the Next method
+// to retrieve the first set of results from the API.
+// If Next returns false, then either you have received all the results
+// for the query or an error occurred. If an error occurs, it will be
+// available through the Err method.
+// If Next returns true, then there are more results to be retrieved and
+// another call to Next will retrieve the next results.
+//
+// Query is most useful for retrieving large result sets that may not
+// fit in a single response. For simple queries that are known to always
+// return small result sets it likely makes more sense to just make the
+// query directly with the *Client.Get method.
 //
 // The following example will retrieve all the pages that are in the category
 // "Soap":
@@ -41,16 +47,17 @@ type Query struct {
 }
 
 // Err returns the first error encountered by the Next method.
-func (q Query) Err() error {
+func (q *Query) Err() error {
 	return q.err
 }
 
 // Resp returns the API response retrieved by the Next method.
-func (q Query) Resp() *jason.Object {
+func (q *Query) Resp() *jason.Object {
 	return q.resp
 }
 
 // NewQuery instantiates a new query with the given parameters.
+// Automatically sets action=query and continue= on the provided params.Values.
 func (w *Client) NewQuery(p params.Values) *Query {
 	p.Set("action", "query")
 	p.Set("continue", "")
