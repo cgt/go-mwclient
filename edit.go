@@ -248,8 +248,8 @@ const (
 func (w *Client) GetToken(tokenName string) (string, error) {
 	// Always obtain a fresh login token
 	if tokenName != LoginToken {
-		if _, ok := w.Tokens[tokenName]; ok {
-			return w.Tokens[tokenName], nil
+		if tok, ok := w.Tokens[tokenName]; ok {
+			return tok, nil
 		}
 	}
 
