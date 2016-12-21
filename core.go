@@ -85,6 +85,12 @@ type (
 // received. To disable, set to nil (default).
 func (w *Client) SetDebug(wr io.Writer) { w.debug = wr }
 
+// SetHTTPTimeout overrides the default HTTP client timeout of 30 seconds.
+// This is not related to the maxlag timeout.
+func (w *Client) SetHTTPTimeout(timeout time.Duration) {
+	w.httpc.Timeout = timeout
+}
+
 // sleeper is used for mocking time.Sleep.
 type sleeper func(d time.Duration)
 
@@ -123,6 +129,7 @@ func New(inURL, userAgent string) (*Client, error) {
 			Transport:     nil,
 			CheckRedirect: nil,
 			Jar:           cjar,
+			Timeout:       30 * time.Second,
 		},
 		apiURL:    apiurl,
 		UserAgent: ua,
