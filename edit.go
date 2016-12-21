@@ -175,6 +175,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 
 		rev := revs[0]
 
+		// TODO: fix * for formatversion=2
 		page.Content, err = rev.GetString("*")
 		if err != nil {
 			return nil, fmt.Errorf("unable to assert page content to string: %s", err)

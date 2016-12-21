@@ -104,6 +104,10 @@ func extractAPIErrors(resp *jason.Object) error {
 	} else if w, err := resp.GetObject("warnings"); err == nil { // Check for warnings
 		warnings := APIWarnings{}
 
+		// With formatversion=2, the warning message will be under
+		// 'warnings.query.warnings' rather than 'warnings.query.*'.
+		// TODO: Fix when switching to formatversion=2 by default.
+
 		var wmap map[string]*jason.Value = w.Map()
 		for module, warningValue := range wmap {
 			warning, err := warningValue.Object()

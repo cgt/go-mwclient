@@ -146,7 +146,12 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 	// The main functionality in this method is in a closure to simplify maxlag handling.
 	callf := func() (io.ReadCloser, error) {
 		p.Set("format", "json")
-		p.Set("utf8", "")
+		if fmtver := p.Get("formatversion"); fmtver == "1" {
+			p.Set("utf8", "")
+		} else if fmtver == "" {
+			p.Set("formatversion", "2")
+			// utf8= is implicit in formatversion=2
+		}
 
 		if w.Maxlag.On {
 			if p.Get("maxlag") == "" {
