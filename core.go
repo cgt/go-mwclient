@@ -368,9 +368,6 @@ func (w *Client) Login(username, password string) error {
 		}
 		return apierr
 	}
-	if w.Assert == AssertNone {
-		w.Assert = AssertUser
-	}
 	return nil
 }
 
@@ -379,7 +376,6 @@ func (w *Client) Login(username, password string) error {
 // Logout sets Client.Assert to AssertNone.
 // Do not use Logout with OAuth.
 func (w *Client) Logout() {
-	w.Assert = AssertNone
 	w.Get(params.Values{"action": "logout"})
 }
 
