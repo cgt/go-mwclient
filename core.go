@@ -198,7 +198,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		if w.debug != nil {
 			reqdump, err := httputil.DumpRequestOut(req, true)
 			if err != nil {
-				w.debug.Write([]byte(fmt.Sprintf("Err dumping request: %v\n", err)))
+				fmt.Fprintf(w.debug, "Err dumping request: %v\n", err)
 			} else {
 				w.debug.Write(reqdump)
 			}
@@ -213,7 +213,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		if w.debug != nil {
 			respdump, err := httputil.DumpResponse(resp, true)
 			if err != nil {
-				w.debug.Write([]byte(fmt.Sprintf("Err dumping response: %v\n", err)))
+				fmt.Fprintf(w.debug, "Err dumping response: %v\n", err)
 			} else {
 				w.debug.Write(respdump)
 			}
