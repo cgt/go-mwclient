@@ -104,22 +104,26 @@ func extractAPIErrors(resp *jason.Object) error {
 	}
 
 	if w, err := resp.GetObject("warnings"); err == nil {
-		var warnings APIWarnings
-		for module, warningValue := range w.Map() {
-			warning, err := warningValue.Object()
-			if err != nil {
-				return fmt.Errorf("extractAPIErrors: %v: %v", err, warningValue)
-			}
-
-			info, err := warning.GetString("warnings")
-			if err != nil {
-				return fmt.Errorf("extractAPIErrors: %v: %v", err, warning)
-			}
-			warnings = append(warnings, APIWarnings{{module, info}}...)
-		}
-
-		return warnings
+		return extractWarnings(w)
 	}
 
 	return nil
+}
+
+func extractWarnings(resp *jason.Object) error {
+	var warnings APIWarnings
+	for module, warningValue := range resp.Map() {
+		warning, err := warningValue.Object()
+		if err != nil {
+			return fmt.Errorf("extractWarnings: %v: %v", err, warningValue)
+		}
+
+		info, err := warning.GetString("warnings")
+		if err != nil {
+			return fmt.Errorf("extractWarnings: %v: %v", err, warning)
+		}
+		warnings = append(warnings, APIWarnings{{module, info}}...)
+	}
+
+	return warnings
 }

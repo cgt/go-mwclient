@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+
+	"github.com/antonholmquist/jason"
 
 	"cgt.name/pkg/go-mwclient/params"
 )
@@ -80,6 +83,14 @@ func (w *Client) Edit(p params.Values) error {
 	return nil
 }
 
+// BriefRevision contains basic information on a single revision of a page.
+type BriefRevision struct {
+	Content   string
+	Timestamp string
+	Error     error
+	PageID    string
+}
+
 // getPage gets the content of a page and the timestamp of its most recent revision.
 // The page is specified either by its name or by its ID.
 // If the isName parameter is true, then the pageIDorName parameter will be
@@ -94,109 +105,114 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 	return page.Content, page.Timestamp, page.Error
 }
 
-// TODO: refactor getPages to be compatible with formatversion=2
-
 // getPages is just like getPage, but performs a multi-query so that
-// only one network call will be used to get the contents of many pages.
+// only one API request will be used to get the contents of many pages.
 // Maps the input name onto a BriefRevision result.
 func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[string]BriefRevision, err error) {
 	if len(pageIDsOrNames) == 0 {
 		return nil, ErrNoArgs
 	}
 
-	pages = make(map[string]BriefRevision, len(pageIDsOrNames))
-
 	p := params.Values{
-		"action":       "query",
-		"prop":         "revisions",
-		"rvprop":       "content|timestamp",
-		"indexpageids": "",
-		"continue":     "",
+		"action": "query",
+		"prop":   "revisions",
+		"rvprop": "content|timestamp",
 	}
-
 	if areNames {
 		p.AddRange("titles", pageIDsOrNames...)
 	} else {
 		p.AddRange("pageids", pageIDsOrNames...)
 	}
 
-	resp, err := w.Get(p)
+	r, err := w.call(p, false)
 	if err != nil {
 		return nil, err
+	}
+	defer r.Close()
+
+	var resp getPagesResponse
+	err = json.NewDecoder(r).Decode(&resp)
+	if err != nil {
+		return nil, err
+	}
+
+	// Treat API warnings as errors.
+	// If a warning is returned, it is likely that the result is wrong.
+	// For example, the query could have asked for more than 50 pages,
+	// in which case only 50 will be returned and the rest will be left out.
+	if resp.Warnings != nil {
+		j, err := jason.NewObjectFromBytes(resp.Warnings)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding warnings: %v", err)
+		}
+		if warnings := extractWarnings(j); warnings != nil {
+			return nil, warnings
+		}
+		return nil, fmt.Errorf("error decoding warnings: no warnings: %v", resp.Warnings)
 	}
 
 	// make sure we can properly map input page names
 	// to output names in the output map.
 	// reversed normalized titles
 	// canonical -> inputted
-	denormalizedNames := make(map[string]string)
-	if normalizations, err := resp.GetObjectArray("query", "normalized"); err == nil {
-		for _, fix := range normalizations {
-			from, err := fix.GetString("from")
-			if err != nil {
-				return nil, err
-			}
-			to, err := fix.GetString("to")
-			if err != nil {
-				return nil, err
-			}
-			denormalizedNames[to] = from
+	normalized := resp.Query.Normalized
+	denormalizedNames := make(map[string]string, len(normalized))
+	if normalized != nil {
+		for _, norm := range normalized {
+			denormalizedNames[norm.To] = norm.From
 		}
 	}
 
-	pageIDs, err := resp.GetStringArray("query", "pageids")
-	if err != nil {
-		return nil, err
-	}
+	pages = make(map[string]BriefRevision, len(pageIDsOrNames))
+	for _, entry := range resp.Query.Pages {
+		var page BriefRevision
 
-	for _, id := range pageIDs { // fill the pages
-		page := BriefRevision{PageID: id}
-
-		entry, err := resp.GetObject("query", "pages", id)
-		if err != nil {
-			return nil, fmt.Errorf("API error: expected page to be in pages array")
-		}
-
-		if _, err := entry.GetValue("missing"); err == nil {
+		// Missing and Special errors are not mutually exclusive,
+		// but treat them as if they were because it's easier.
+		if entry.Missing {
 			page.Error = ErrPageNotFound
-			title, err := entry.GetString("title")
-			if err != nil {
-				return nil, err
-			}
-			pages[title] = page
-			continue
+		} else if entry.Special {
+			page.Error = errors.New("special pages not supported for this query")
 		}
 
-		revs, err := entry.GetObjectArray("revisions")
-		if err != nil {
-			return nil, fmt.Errorf("API error: revision list not returned")
+		if page.Error == nil {
+			page.PageID = strconv.Itoa(entry.PageID)
+
+			rev := entry.Revisions[0]
+			page.Content = rev.Content
+			page.Timestamp = rev.Timestamp
 		}
 
-		rev := revs[0]
-
-		page.Content, err = rev.GetString("*")
-		if err != nil {
-			return nil, fmt.Errorf("unable to assert page content to string: %s", err)
-		}
-
-		page.Timestamp, err = rev.GetString("timestamp")
-		if err != nil {
-			return nil, fmt.Errorf("unable to assert timestamp to string: %s", err)
-		}
-
-		trueTitle, err := entry.GetString("title")
-		if err != nil {
-			return nil, fmt.Errorf("API error: page entry does not have title field")
-		}
-
-		if inputted, ok := denormalizedNames[trueTitle]; ok {
-			pages[inputted] = page
+		var title string
+		if inputTitle, ok := denormalizedNames[entry.Title]; ok {
+			title = inputTitle
 		} else {
-			pages[trueTitle] = page
+			title = entry.Title
 		}
+		pages[title] = page
 	}
 
 	return pages, nil
+}
+
+type getPagesResponse struct {
+	Warnings json.RawMessage `json:"warnings"`
+	Query    struct {
+		Normalized []struct {
+			From string `json:"from"`
+			To   string `json:"to"`
+		} `json:"normalized"`
+		Pages []struct {
+			Missing   bool   `json:"missing"`
+			Special   bool   `json:"special"`
+			PageID    int    `json:"pageid"`
+			Title     string `json:"title"`
+			Revisions []struct {
+				Timestamp string `json:"timestamp"`
+				Content   string `json:"content"`
+			} `json:"revisions"`
+		} `json:"pages"`
+	} `json:"query"`
 }
 
 // GetPageByName gets the content of a page (specified by its name) and

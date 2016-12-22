@@ -69,15 +69,6 @@ type (
 		// test execution needlessly by actually sleeping.
 		sleep sleeper
 	}
-
-	// BriefRevision contains basic information on a
-	// single revision of a page.
-	BriefRevision struct {
-		Content   string
-		Timestamp string
-		Error     error
-		PageID    string
-	}
 )
 
 // SetDebug takes an io.Writer to which HTTP requests and responses
