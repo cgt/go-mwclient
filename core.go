@@ -15,9 +15,12 @@ import (
 	"cgt.name/pkg/go-mwclient/params"
 
 	"github.com/antonholmquist/jason"
+	"github.com/mrjones/oauth"
 )
 
-// If you modify this package, please change the user agent.
+// If you modify this package, please change DefaultUserAgent.
+
+// DefaultUserAgent is the HTTP User-Agent used by default.
 const DefaultUserAgent = "go-mwclient (https://github.com/cgt/go-mwclient)"
 
 type assertType uint8
@@ -35,11 +38,16 @@ const (
 type (
 	// Client represents the API client.
 	Client struct {
-		httpc     *http.Client
-		apiURL    *url.URL
+		httpc  *http.Client
+		apiURL *url.URL
+		// HTTP user agent
 		UserAgent string
-		Tokens    map[string]string
-		Maxlag    Maxlag
+		// API token cache.
+		// Maps from name of token (e.g., "csrf") to token value.
+		// Use GetToken to obtain tokens.
+		Tokens map[string]string
+		// Maxlag contains maxlag configuration for Client.
+		Maxlag Maxlag
 		// If Assert is assigned the value of consts AssertUser or AssertBot,
 		// the 'assert' parameter will be added to API requests with
 		// the value 'user' or 'bot', respectively. To disable such assertions,
@@ -61,15 +69,6 @@ type (
 		// test execution needlessly by actually sleeping.
 		sleep sleeper
 	}
-
-	// BriefRevision contains basic information on a
-	// single revision of a page.
-	BriefRevision struct {
-		Content   string
-		Timestamp string
-		Error     error
-		PageID    string
-	}
 )
 
 // SetDebug takes an io.Writer to which HTTP requests and responses
@@ -77,15 +76,24 @@ type (
 // received. To disable, set to nil (default).
 func (w *Client) SetDebug(wr io.Writer) { w.debug = wr }
 
+// SetHTTPTimeout overrides the default HTTP client timeout of 30 seconds.
+// This is not related to the maxlag timeout.
+func (w *Client) SetHTTPTimeout(timeout time.Duration) {
+	w.httpc.Timeout = timeout
+}
+
+// sleeper is used for mocking time.Sleep.
 type sleeper func(d time.Duration)
 
 // New returns a pointer to an initialized Client object. If the provided API URL
 // is invalid (as defined by the net/url package), then it will return nil and
-// the error from url.Parse(). If the user agent is empty, this will also result
-// in an error. The userAgent parameter will be combined with the
-// DefaultUserAgent const to form a meaningful user agent. If this is undesired,
-// the UserAgent field on the Client is exported and can therefore be set
-// manually.
+// the error from url.Parse().
+//
+// The userAgent parameter will be joined with the DefaultUserAgent const and
+// used as HTTP User-Agent. If userAgent is an empty string, DefaultUserAgent
+// will be used by itself as User-Agent. The User-Agent set by New can be
+// overriden by setting the UserAgent field on the returned *Client.
+//
 // New disables maxlag by default. To enable it, simply set
 // Client.Maxlag.On to true. The default timeout is 5 seconds and the default
 // amount of retries is 3.
@@ -100,8 +108,11 @@ func New(inURL, userAgent string) (*Client, error) {
 		return nil, err
 	}
 
-	if strings.TrimSpace(userAgent) == "" {
-		return nil, fmt.Errorf("userAgent parameter empty")
+	var ua string
+	if userAgent != "" {
+		ua = userAgent + " " + DefaultUserAgent
+	} else {
+		ua = DefaultUserAgent
 	}
 
 	return &Client{
@@ -109,9 +120,10 @@ func New(inURL, userAgent string) (*Client, error) {
 			Transport:     nil,
 			CheckRedirect: nil,
 			Jar:           cjar,
+			Timeout:       30 * time.Second,
 		},
 		apiURL:    apiurl,
-		UserAgent: fmt.Sprintf("%s %s", userAgent, DefaultUserAgent),
+		UserAgent: ua,
 		Tokens:    map[string]string{},
 		Maxlag: Maxlag{
 			On:      false,
@@ -132,7 +144,12 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 	// The main functionality in this method is in a closure to simplify maxlag handling.
 	callf := func() (io.ReadCloser, error) {
 		p.Set("format", "json")
-		p.Set("utf8", "")
+		if fmtver := p.Get("formatversion"); fmtver == "1" {
+			p.Set("utf8", "")
+		} else if fmtver == "" {
+			p.Set("formatversion", "2")
+			// utf8= is implicit in formatversion=2
+		}
 
 		if w.Maxlag.On {
 			if p.Get("maxlag") == "" {
@@ -179,7 +196,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		if w.debug != nil {
 			reqdump, err := httputil.DumpRequestOut(req, true)
 			if err != nil {
-				w.debug.Write([]byte(fmt.Sprintf("Err dumping request: %v\n", err)))
+				fmt.Fprintf(w.debug, "Err dumping request: %v\n", err)
 			} else {
 				w.debug.Write(reqdump)
 			}
@@ -194,7 +211,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		if w.debug != nil {
 			respdump, err := httputil.DumpResponse(resp, true)
 			if err != nil {
-				w.debug.Write([]byte(fmt.Sprintf("Err dumping response: %v\n", err)))
+				fmt.Fprintf(w.debug, "Err dumping response: %v\n", err)
 			} else {
 				w.debug.Write(respdump)
 			}
@@ -220,7 +237,6 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		}
 
 		return resp.Body, nil
-
 	}
 
 	if w.Maxlag.On {
@@ -322,7 +338,7 @@ func (w *Client) PostRaw(p params.Values) ([]byte, error) {
 }
 
 // Login attempts to login using the provided username and password.
-// Login sets Client.Assert to AssertUser if login is successful.
+// Do not use Login with OAuth.
 func (w *Client) Login(username, password string) error {
 	token, err := w.GetToken(LoginToken)
 	if err != nil {
@@ -343,18 +359,40 @@ func (w *Client) Login(username, password string) error {
 		return fmt.Errorf("invalid API response: unable to assert login result to string")
 	}
 	if lgResult != "Success" {
-		return APIError{Code: lgResult}
-	}
-	if w.Assert == AssertNone {
-		w.Assert = AssertUser
+		apierr := APIError{Code: lgResult}
+		if reason, err := resp.GetString("login", "reason"); err == nil {
+			apierr.Info = reason
+		}
+		return apierr
 	}
 	return nil
 }
 
 // Logout sends a logout request to the API.
 // Logout does not take into account whether or not a user is actually logged in.
-// Logout sets Client.Assert to AssertNone.
-func (w *Client) Logout() {
-	w.Assert = AssertNone
-	w.Get(params.Values{"action": "logout"})
+// Do not use Logout with OAuth.
+func (w *Client) Logout() error {
+	_, err := w.GetRaw(params.Values{"action": "logout"})
+	return err
+}
+
+// OAuth configures OAuth authentication. After calling OAuth, future requests
+// will be authenticated. OAuth does not make any API calls, so authentication
+// failures will appear in response to the first API call after OAuth has
+// been configured. Do not mix use of OAuth with Login/Logout.
+func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret string) error {
+	consumer := oauth.NewConsumer(consumerToken, consumerSecret, oauth.ServiceProvider{})
+	access := oauth.AccessToken{
+		Token:  accessToken,
+		Secret: accessSecret,
+	}
+
+	httpc, err := consumer.MakeHttpClient(&access)
+	if err != nil {
+		return err
+	}
+	httpc.Jar = w.httpc.Jar
+	w.httpc = httpc
+
+	return nil
 }

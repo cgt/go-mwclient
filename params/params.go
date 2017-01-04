@@ -53,6 +53,19 @@ func (v Values) Add(key, value string) {
 	}
 }
 
+// AddRange adds multiple values to a key.
+// It appends to any existing values associated with key.
+func (v Values) AddRange(key string, values ...string) {
+	if current, ok := v[key]; ok {
+		list := make([]string, 0, 1+len(values))
+		list = append(list, current)
+		list = append(list, values...)
+		v[key] = strings.Join(list, "|")
+	} else {
+		v[key] = strings.Join(values, "|")
+	}
+}
+
 // Del deletes the value associated with key.
 func (v Values) Del(key string) {
 	delete(v, key)

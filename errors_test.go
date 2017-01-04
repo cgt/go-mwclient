@@ -33,18 +33,9 @@ func TestExtractAPIErrors(t *testing.T) {
 			0,
 		},
 		{
-			[]byte(`{"warnings":{"tokens":{"*":
-			"Action 'deleteglobalaccount' is not allowed for the current user"}},
-			"tokens":[]}`),
+			[]byte(`{"batchcomplete":true,"warnings":{"query":{"warnings":"Unrecognized value for parameter \"list\": invalidmodule."}}}`),
 			Warn,
 			1,
-		},
-		{
-			[]byte(`{"warnings":{"tokens":{"*":
-			"Action 'deleteglobalaccount' is not allowed for the current user\nAction 'setglobalaccountstatus' is not allowed for the current user"}},
-			"tokens":[]}`),
-			Warn,
-			2,
 		},
 		{
 			[]byte(`{"query":{"pages":{"709377":{"pageid":709377,"ns":2,"title":
