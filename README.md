@@ -1,14 +1,15 @@
 # go-mwclient
 
-go-mwclient is a Go package for interacting with the MediaWiki JSON API.
-The package's actual name is "mwclient", but it is called "go-mwclient"
-to avoid confusion with similarly named libraries written in other
-programming languages.
+go-mwclient is a [Go](https://golang.org) package for interacting with
+the MediaWiki JSON API.
 
 go-mwclient aims to be a thin wrapper around the MediaWiki API that
 takes care of the most tedious parts of interacting with the API (such
 as authentication and query continuation), but it does not aim to
 abstract away all the functionality of the API.
+
+go-mwclient v1 uses [version 2](https://www.mediawiki.org/wiki/API:JSON_version_2)
+of the MediaWiki JSON API.
 
 The canonical import path for this package is
 
@@ -18,16 +19,12 @@ Documentation:
 - GoDoc: <http://godoc.org/cgt.name/pkg/go-mwclient>
 - MediaWiki API docs: <https://www.mediawiki.org/wiki/API:Main_page>
 
+As of v1.0.0, go-mwclient uses [semantic versioning](http://semver.org/).
+The `master` branch contains the most recent v1.x.x release.
+
 ## Installation
 
-    go get cgt.name/pkg/go-mwclient
-
-## API stability
-
-go-mwclient's API seems to have stabilized. It probably won't change
-significantly, if at all.
-
-TODO: v1
+    go get -u cgt.name/pkg/go-mwclient
 
 ## Example
 
@@ -73,7 +70,7 @@ TODO: v1
     }
 
 ## Dependencies
-Other than the Go standard library, go-mwclient depends on the following
+Other than the standard library, go-mwclient depends on the following
 third party, open source packages:
 
 - <https://github.com/antonholmquist/jason> (MIT licensed)

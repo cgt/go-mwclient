@@ -5,6 +5,8 @@ go-mwclient is intended for users who are already familiar with (or are
 willing to learn) the MediaWiki API. It is intended to make dealing with
 the API more convenient, but not to hide it.
 
+go-mwclient v1 uses version 2 of the MW JSON API.
+
 Basic usage
 
 In the example below, basic usage of go-mwclient is shown.
