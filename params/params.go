@@ -8,7 +8,7 @@
 // The purpose of this is that the MediaWiki API does not use multiple keys
 // to allow multiple values for a key (e.g., "a=b&a=c"). Instead it uses
 // one key with values separated by a pipe (e.g. "a=b|c").
-package params
+package params // import "cgt.name/pkg/go-mwclient/params"
 
 import (
 	"bytes"
