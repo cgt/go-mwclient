@@ -114,9 +114,10 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 	}
 
 	p := params.Values{
-		"action": "query",
-		"prop":   "revisions",
-		"rvprop": "content|timestamp",
+		"action":  "query",
+		"prop":    "revisions",
+		"rvprop":  "content|timestamp",
+		"rvslots": "main",
 	}
 	if areNames {
 		p.AddRange("titles", pageIDsOrNames...)
