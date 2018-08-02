@@ -180,7 +180,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 			page.PageID = strconv.Itoa(entry.PageID)
 
 			rev := entry.Revisions[0]
-			page.Content = rev.Content
+			page.Content = rev.Slots.Main.Content
 			page.Timestamp = rev.Timestamp
 		}
 
@@ -210,7 +210,13 @@ type getPagesResponse struct {
 			Title     string `json:"title"`
 			Revisions []struct {
 				Timestamp string `json:"timestamp"`
-				Content   string `json:"content"`
+				Slots     struct {
+					Main struct {
+						ContentModel  string `json:"contentmodel"`
+						ContentFormat string `json:"contentformat"`
+						Content       string `json:"content"`
+					}
+				}
 			} `json:"revisions"`
 		} `json:"pages"`
 	} `json:"query"`
