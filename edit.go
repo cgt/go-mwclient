@@ -97,14 +97,14 @@ type BriefRevision struct {
 // assumed to be a page name and vice versa.
 func (w *Client) getPage(pageIDorName string, isName bool) (content string, timestamp string, err error) {
 	pages, err := w.getPages(isName, pageIDorName)
-	if pages != nil {
-		page := pages[pageIDorName]
-		if page.Error != nil {
-			return "", "", page.Error
-		}
-		return page.Content, page.Timestamp, err
+	if pages == nil && err != nil {
+		return "", "", err
 	}
-	return "", "", err
+	page := pages[pageIDorName]
+	if page.Error != nil {
+		return "", "", page.Error
+	}
+	return page.Content, page.Timestamp, err
 }
 
 // getPages is just like getPage, but performs a multi-query so that
