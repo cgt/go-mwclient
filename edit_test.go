@@ -1,6 +1,7 @@
 package mwclient
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -184,5 +185,100 @@ func TestEditCaptchaMath(t *testing.T) {
 	}
 	if e.URL != "" {
 		t.Errorf("e.URL is not empty string despite math captcha: %s", e.URL)
+	}
+}
+
+func TestHandleGetPagesReturnsPagesEvenIfWarning(t *testing.T) {
+	jsonResp := []byte(`
+{
+  "warnings": {
+    "main": {
+      "warnings": "Unrecognized parameter: foo."
+    }
+  },
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "pageid": 15580374,
+        "ns": 0,
+        "title": "Main Page",
+        "revisions": [
+          {
+            "timestamp": "2018-06-26T14:19:36Z",
+            "slots": {
+              "main": {
+                "contentmodel": "wikitext",
+                "contentformat": "text/x-wiki",
+                "content": "...snip..."
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+`)
+
+	var resp getPagesResponse
+	err := json.Unmarshal(jsonResp, &resp)
+	if err != nil {
+		panic(err)
+	}
+	titles := []string{"Main Page"}
+
+	pages, err := handleGetPages(titles, resp)
+
+	if pages == nil {
+		t.Error("expected non-nil pages, got nil")
+	}
+	if err == nil {
+		t.Error("expected non-nil error, got nil")
+	}
+}
+
+func TestHandleGetPagesReturnsBothWarningsAndPageErrors(t *testing.T) {
+	jsonResp := []byte(`
+{
+  "warnings": {
+    "main": {
+      "warnings": "Unrecognized parameter: foo."
+    }
+  },
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "ns": 0,
+        "title": "DoesNotExist",
+        "missing": true
+      }
+    ]
+  }
+}
+`)
+	var resp getPagesResponse
+	err := json.Unmarshal(jsonResp, &resp)
+	if err != nil {
+		panic(err)
+	}
+	titles := []string{"DoesNotExist"}
+
+	pages, err := handleGetPages(titles, resp)
+
+	if err == nil {
+		t.Error("expected error, got nil")
+	} else if _, ok := err.(APIWarnings); !ok {
+		t.Errorf("expected APIWarnings error, got %#v", err)
+	}
+
+	if pages == nil {
+		t.Error("expected non-nil pages, got nil")
+	} else {
+		page := pages[titles[0]]
+		if page.Error == nil {
+			t.Error("expected page-specific error, got nil")
+		}
 	}
 }

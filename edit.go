@@ -138,7 +138,10 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 	if err != nil {
 		return nil, err
 	}
+	return handleGetPages(pageIDsOrNames, resp)
+}
 
+func handleGetPages(pageNames []string, resp getPagesResponse) (pages map[string]BriefRevision, err error) {
 	// Return warnings as errors along with any data.
 	// If a warning is returned, it is possible that the data is wrong.
 	// For example, the query could have asked for more than 50 pages,
@@ -167,7 +170,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 		}
 	}
 
-	pages = make(map[string]BriefRevision, len(pageIDsOrNames))
+	pages = make(map[string]BriefRevision, len(pageNames))
 	for _, entry := range resp.Query.Pages {
 		var page BriefRevision
 
