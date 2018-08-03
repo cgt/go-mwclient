@@ -100,7 +100,7 @@ func (w *Client) getPage(pageIDorName string, isName bool) (content string, time
 	if pages != nil {
 		page := pages[pageIDorName]
 		if page.Error != nil {
-			err = page.Error
+			return "", "", page.Error
 		}
 		return page.Content, page.Timestamp, err
 	}
