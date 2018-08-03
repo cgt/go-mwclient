@@ -97,12 +97,14 @@ type BriefRevision struct {
 // assumed to be a page name and vice versa.
 func (w *Client) getPage(pageIDorName string, isName bool) (content string, timestamp string, err error) {
 	pages, err := w.getPages(isName, pageIDorName)
-	if err != nil {
-		return "", "", err
+	if pages != nil {
+		page := pages[pageIDorName]
+		if page.Error != nil {
+			err = page.Error
+		}
+		return page.Content, page.Timestamp, err
 	}
-
-	page := pages[pageIDorName]
-	return page.Content, page.Timestamp, page.Error
+	return "", "", err
 }
 
 // getPages is just like getPage, but performs a multi-query so that
@@ -137,19 +139,20 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 		return nil, err
 	}
 
-	// Treat API warnings as errors.
-	// If a warning is returned, it is likely that the result is wrong.
+	// Return warnings as errors along with any data.
+	// If a warning is returned, it is possible that the data is wrong.
 	// For example, the query could have asked for more than 50 pages,
 	// in which case only 50 will be returned and the rest will be left out.
+	var warnings error
 	if resp.Warnings != nil {
 		j, err := jason.NewObjectFromBytes(resp.Warnings)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding warnings: %v", err)
 		}
-		if warnings := extractWarnings(j); warnings != nil {
-			return nil, warnings
+		warnings = extractWarnings(j)
+		if warnings == nil {
+			return nil, fmt.Errorf("error decoding warnings: no warnings: %v", resp.Warnings)
 		}
-		return nil, fmt.Errorf("error decoding warnings: no warnings: %v", resp.Warnings)
 	}
 
 	// make sure we can properly map input page names
@@ -193,7 +196,7 @@ func (w *Client) getPages(areNames bool, pageIDsOrNames ...string) (pages map[st
 		pages[title] = page
 	}
 
-	return pages, nil
+	return pages, warnings
 }
 
 type getPagesResponse struct {
