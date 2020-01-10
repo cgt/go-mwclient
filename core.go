@@ -82,6 +82,14 @@ func (w *Client) SetHTTPTimeout(timeout time.Duration) {
 	w.httpc.Timeout = timeout
 }
 
+// For the RSA OAuth authentication method, use oauth.NewRSAConsumer
+// and consumer.MakeHttpClient and install the http.Client here.
+func (w *Client) ReplaceHTTPC(httpc *http.Client) error {
+	httpc.Jar = w.httpc.Jar
+	w.httpc = httpc
+	return nil
+}
+
 // sleeper is used for mocking time.Sleep.
 type sleeper func(d time.Duration)
 
@@ -394,13 +402,5 @@ func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret 
 	httpc.Jar = w.httpc.Jar
 	w.httpc = httpc
 
-	return nil
-}
-
-// For the RSA OAuth authentication method, use oauth.NewRSAConsumer
-// and consumer.MakeHttpClient and install the http.Client here.
-func (w *Client) ReplaceHTTPC(httpc *http.Client) error {
-	httpc.Jar = w.httpc.Jar
-	w.httpc = httpc
 	return nil
 }
