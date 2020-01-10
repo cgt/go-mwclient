@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Changes that are required to maintain compatibility with new versions of
 MediaWiki are not considered breaking changes.
 
+
+## [1.1.0] - 2020-01-10
+### Added
+- Allow overriding the `*http.Client` client used by `Client`.
+
 ## [1.0.3] - 2018-08-03
 ### Fixed
 - *Get page* functions no longer treat warnings as fatal errors. Return pages
