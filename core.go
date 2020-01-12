@@ -392,13 +392,9 @@ func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret 
 		Token:  accessToken,
 		Secret: accessSecret,
 	}
-
 	httpc, err := consumer.MakeHttpClient(&access)
-	if err != nil {
-		return err
+	if err == nil {
+		w.SetHTTPClient(httpc)
 	}
-	httpc.Jar = w.httpc.Jar
-	w.httpc = httpc
-
-	return nil
+	return err
 }
