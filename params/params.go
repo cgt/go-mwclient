@@ -96,7 +96,13 @@ func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
+	var token bool
+
 	for paramName, paramContents := range v {
+		if paramName == "token" {
+			token = true
+			continue
+		}
 		if paramContents != "" {
 			part, err := writer.CreatePart(textproto.MIMEHeader{"name": []string{paramName}})
 			if err != nil {
@@ -105,6 +111,15 @@ func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
 			part.Write([]byte(paramContents))
 		}
 	}
+
+	if token {
+		part, err := writer.CreatePart(textproto.MIMEHeader{"name": []string{"token"}})
+		if err != nil {
+			return nil, "", err
+		}
+		part.Write([]byte(v["token"]))
+	}
+
 	writer.Close()
 
 	return body, writer.FormDataContentType(), nil
