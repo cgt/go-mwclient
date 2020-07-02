@@ -8,10 +8,12 @@
 // The purpose of this is that the MediaWiki API does not use multiple keys
 // to allow multiple values for a key (e.g., "a=b&a=c"). Instead it uses
 // one key with values separated by a pipe (e.g. "a=b|c").
-package params // import "cgt.name/pkg/go-mwclient/params"
+package params
 
 import (
 	"bytes"
+	"mime/multipart"
+	"net/textproto"
 	"net/url"
 	"sort"
 	"strings"
@@ -80,9 +82,41 @@ func (v Values) Del(key string) {
 // ensure that an action will not be executed if the query string has been cut
 // off for some reason.
 func (v Values) Encode() string {
+	return v.encode()
+}
+
+// EncodeMultipart returns a ``multipart encoded'' byte buffer
+// with the parameters, along with a Content-Type header string to use,
+// and an error if something somehow goes dramatically wrong.
+func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
+	if v == nil {
+		return bytes.NewBufferString(""), "multipart/form-data; boundary=none", nil
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for paramName, paramContents := range v {
+		if paramContents != "" {
+			part, err := writer.CreatePart(textproto.MIMEHeader{"name": []string{paramName}})
+			if err != nil {
+				return nil, "", err
+			}
+			part.Write([]byte(paramContents))
+		}
+	}
+	writer.Close()
+
+	return body, writer.FormDataContentType(), nil
+}
+
+// encode takes the values and encodes them into URL escaped
+// parameters (see Encode())
+func (v Values) encode() string {
 	if v == nil {
 		return ""
 	}
+
 	var buf bytes.Buffer
 	keys := make([]string, 0, len(v))
 	for k := range v {
