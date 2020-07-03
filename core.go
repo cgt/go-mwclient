@@ -108,7 +108,7 @@ type sleeper func(d time.Duration)
 // Client.Maxlag.On to true. The default timeout is 5 seconds and the default
 // amount of retries is 3.
 func New(inURL, userAgent string) (*Client, error) {
-	cjar, err := cookiejar.New(nil)
+	cookies, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func New(inURL, userAgent string) (*Client, error) {
 		httpc: &http.Client{
 			Transport:     nil,
 			CheckRedirect: nil,
-			Jar:           cjar,
+			Jar:           cookies,
 			Timeout:       30 * time.Second,
 		},
 		apiURL:    apiurl,
