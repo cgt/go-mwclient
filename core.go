@@ -37,7 +37,7 @@ const (
 
 // maxSizeForQueryString sets the maximum size of one of the parameters
 // before it is sent using multipart/form-data.
-const maxSizeForQueryString int = 8000
+const maxSizeForQueryString = 8000
 
 type (
 	// Client represents the API client.
