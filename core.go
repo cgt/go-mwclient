@@ -171,13 +171,11 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 			}
 		}
 
-		if w.Assert > AssertNone {
-			switch w.Assert {
-			case AssertUser:
-				p.Set("assert", "user")
-			case AssertBot:
-				p.Set("assert", "bot")
-			}
+		switch w.Assert {
+		case AssertUser:
+			p.Set("assert", "user")
+		case AssertBot:
+			p.Set("assert", "bot")
 		}
 
 		// Check the length of text parameters; if any are big, we should
