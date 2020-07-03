@@ -35,6 +35,10 @@ const (
 	AssertBot
 )
 
+// maxSizeForQueryString sets the maximum size of one of the parameters
+// before it is sent using multipart/form-data.
+const maxSizeForQueryString int = 8000
+
 type (
 	// Client represents the API client.
 	Client struct {
@@ -144,6 +148,9 @@ func New(inURL, userAgent string) (*Client, error) {
 // call makes a GET or POST request to the Mediawiki API depending on whether
 // the post argument is true or false (if true, it will POST) and returns
 // the response body as an io.ReadCloser. Remember to close it when done with it.
+// call may not always respect the post argument being false in cases where
+// the request is very large; in such a case, the request will be POSTed anyway.
+// The MediaWiki API accepts POST on all endpoints.
 // call supports the maxlag parameter and will respect it if it is turned on
 // in the Client it operates on.
 func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
@@ -173,29 +180,37 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 			}
 		}
 
-		// Make a POST or GET request depending on the "post" parameter.
-		var httpMethod string
-		if post {
-			httpMethod = "POST"
-		} else {
-			httpMethod = "GET"
-		}
+		// Check the length of text parameters; if any are big, we should
+		// use multipart/form-data per https://www.mediawiki.org/wiki/API:Edit#Large_edits
+		var useMultipart bool
+		useMultipart = areParamsTooBig(p)
 
 		var req *http.Request
 		var err error
-		if post {
-			req, err = http.NewRequest(httpMethod, w.apiURL.String(), strings.NewReader(p.Encode()))
+		var multipartContentType string
+		if useMultipart {
+			var body string
+			body, multipartContentType, err = p.EncodeMultipart()
+
+			if err != nil {
+				return nil, fmt.Errorf("unable to encode parameters as multipart (params: %v): %v", p, err)
+			}
+			req, err = http.NewRequest("POST", w.apiURL.String(), strings.NewReader(body))
+		} else if post {
+			req, err = http.NewRequest("POST", w.apiURL.String(), strings.NewReader(p.Encode()))
 		} else {
-			req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
+			req, err = http.NewRequest("GET", fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
 		}
+
 		if err != nil {
-			return nil, fmt.Errorf("unable to create HTTP request (method: %s, params: %v): %v",
-				httpMethod, p, err)
+			return nil, fmt.Errorf("unable to create HTTP request (params: %v): %v", p, err)
 		}
 
 		// Set headers on request
 		req.Header.Set("User-Agent", w.UserAgent)
-		if post {
+		if useMultipart {
+			req.Header.Set("Content-Type", multipartContentType)
+		} else if post {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		}
 
@@ -311,6 +326,9 @@ func (w *Client) callRaw(p params.Values, post bool) ([]byte, error) {
 
 // Get performs a GET request with the specified parameters and returns the
 // response as a *jason.Object.
+// Note that the request may automatically be converted to a POST request
+// if the parameters it is passed are too large; the MediaWiki API accepts
+// POST on all endpoints.
 // Get will return any API errors and/or warnings (if no other errors occur)
 // as the error return value.
 func (w *Client) Get(p params.Values) (*jason.Object, error) {
@@ -320,6 +338,9 @@ func (w *Client) Get(p params.Values) (*jason.Object, error) {
 // GetRaw performs a GET request with the specified parameters
 // and returns the raw JSON response as a []byte.
 // Unlike Get, GetRaw does not check for API errors/warnings.
+// Note that the request may automatically be converted to a POST request
+// if the parameters it is passed are too large; the MediaWiki API accepts
+// POST on all endpoints.
 // GetRaw is useful when you want to decode the JSON into a struct for easier
 // and safer use.
 func (w *Client) GetRaw(p params.Values) ([]byte, error) {
@@ -401,4 +422,16 @@ func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret 
 	w.httpc = httpc
 
 	return nil
+}
+
+// areParamsTooBig determines whether any of the params.Values
+// passed to it are over the maxSizeForQueryString. It is used
+// to set whether a request will be multipart or not.
+func areParamsTooBig(params params.Values) bool {
+	for _, value := range params {
+		if len(value) > maxSizeForQueryString {
+			return true
+		}
+	}
+	return false
 }

@@ -55,7 +55,7 @@ func (w *Client) Edit(p params.Values) error {
 
 	editResult, err := resp.GetString("edit", "result")
 	if err != nil {
-		return fmt.Errorf("unable to assert 'result' field to type string\n")
+		return fmt.Errorf("unable to assert 'result' field to type string")
 	}
 
 	if editResult != "Success" {

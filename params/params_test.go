@@ -4,23 +4,43 @@
 
 package params
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 type EncodeQueryTest struct {
-	m        Values
-	expected string
+	m         Values
+	expected  string
+	multipart string
 }
 
 var encodeQueryTests = []EncodeQueryTest{
-	{nil, ""},
-	{Values{"q": "puppies", "oe": "utf8"}, "oe=utf8&q=puppies"},
-	{Values{"x": "c", "a": "b", "token": "t"}, "a=b&x=c&token=t"},
+	{nil, "", ""},
+	{Values{"q": "puppies", "oe": "utf8"}, "oe=utf8&q=puppies", "--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"oe\"\r\n\r\nutf8\r\n" +
+		"--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"q\"\r\n\r\npuppies\r\n" +
+		"--!BOUNDARY!--\r\n"},
+	{Values{"x": "c", "token": "t", "a": "b"}, "a=b&x=c&token=t", "--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nb\r\n" +
+		"--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"x\"\r\n\r\nc\r\n" +
+		"--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"token\"\r\n\r\nt\r\n" +
+		"--!BOUNDARY!--\r\n"},
 }
 
 func TestEncodeQuery(t *testing.T) {
 	for _, tt := range encodeQueryTests {
 		if q := tt.m.Encode(); q != tt.expected {
 			t.Errorf(`EncodeQuery(%+v) = %q, want %q`, tt.m, q, tt.expected)
+		}
+	}
+}
+
+func TestEncodeMultipartQuery(t *testing.T) {
+	for _, tt := range encodeQueryTests {
+		enc, ctype, _ := tt.m.EncodeMultipart()
+		valid := strings.ReplaceAll(tt.multipart, "!BOUNDARY!", strings.TrimPrefix(ctype, "multipart/form-data; boundary="))
+
+		if enc != valid {
+			t.Errorf(`EncodeMultipartQuery(%+v) = %q, want %q`, tt.m, enc, valid)
 		}
 	}
 }

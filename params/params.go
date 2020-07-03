@@ -12,6 +12,7 @@ package params // import "cgt.name/pkg/go-mwclient/params"
 
 import (
 	"bytes"
+	"mime/multipart"
 	"net/url"
 	"sort"
 	"strings"
@@ -83,12 +84,9 @@ func (v Values) Encode() string {
 	if v == nil {
 		return ""
 	}
+
 	var buf bytes.Buffer
-	keys := make([]string, 0, len(v))
-	for k := range v {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := v.sortKeys()
 	token := false
 	for _, k := range keys {
 		if k == "token" {
@@ -106,4 +104,58 @@ func (v Values) Encode() string {
 		buf.WriteString("&token=" + url.QueryEscape(v["token"]))
 	}
 	return buf.String()
+}
+
+// EncodeMultipart returns a ``multipart encoded'' version of
+// the parameters as a string, along with a Content-Type
+// header string to use, and an error if something somehow
+// goes dramatically wrong.
+func (v Values) EncodeMultipart() (data string, contentType string, err error) {
+	if v == nil {
+		return "", "multipart/form-data; boundary=none", nil
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	var token bool
+
+	keys := v.sortKeys()
+	for _, paramName := range keys {
+		if paramName == "token" {
+			token = true
+			continue
+		}
+		if v[paramName] != "" {
+			part, err := writer.CreateFormField(paramName)
+			if err != nil {
+				return "", "", err
+			}
+			part.Write([]byte(v[paramName]))
+		}
+	}
+
+	if token {
+		part, err := writer.CreateFormField("token")
+		if err != nil {
+			return "", "", err
+		}
+		part.Write([]byte(v["token"]))
+	}
+
+	writer.Close()
+
+	return body.String(), writer.FormDataContentType(), nil
+}
+
+// sortKeys sorts the keys of the parameters
+// into an alphabetical order, to ensure that
+// the ordering is consistent
+func (v Values) sortKeys() []string {
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
