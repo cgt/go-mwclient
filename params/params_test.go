@@ -17,8 +17,13 @@ type EncodeQueryTest struct {
 
 var encodeQueryTests = []EncodeQueryTest{
 	{nil, "", ""},
-	{Values{"q": "puppies", "oe": "utf8"}, "oe=utf8&q=puppies", "--!BOUNDARY!\r\nname: oe\r\n\r\nutf8\r\n--!BOUNDARY!\r\nname: q\r\n\r\npuppies\r\n--!BOUNDARY!--\r\n"},
-	{Values{"x": "c", "token": "t", "a": "b"}, "a=b&x=c&token=t", "--!BOUNDARY!\r\nname: a\r\n\r\nb\r\n--!BOUNDARY!\r\nname: x\r\n\r\nc\r\n--!BOUNDARY!\r\nname: token\r\n\r\nt\r\n--!BOUNDARY!--\r\n"},
+	{Values{"q": "puppies", "oe": "utf8"}, "oe=utf8&q=puppies", "--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"oe\"\r\n\r\nutf8\r\n" +
+		"--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"q\"\r\n\r\npuppies\r\n" +
+		"--!BOUNDARY!--\r\n"},
+	{Values{"x": "c", "token": "t", "a": "b"}, "a=b&x=c&token=t", "--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\nb\r\n" +
+		"--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"x\"\r\n\r\nc\r\n" +
+		"--!BOUNDARY!\r\nContent-Disposition: form-data; name=\"token\"\r\n\r\nt\r\n" +
+		"--!BOUNDARY!--\r\n"},
 }
 
 func TestEncodeQuery(t *testing.T) {

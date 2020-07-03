@@ -13,7 +13,6 @@ package params // import "cgt.name/pkg/go-mwclient/params"
 import (
 	"bytes"
 	"mime/multipart"
-	"net/textproto"
 	"net/url"
 	"sort"
 	"strings"
@@ -105,7 +104,7 @@ func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
 			continue
 		}
 		if v[paramName] != "" {
-			part, err := writer.CreatePart(textproto.MIMEHeader{"name": []string{paramName}})
+			part, err := writer.CreateFormField(paramName)
 			if err != nil {
 				return nil, "", err
 			}
@@ -114,7 +113,7 @@ func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
 	}
 
 	if token {
-		part, err := writer.CreatePart(textproto.MIMEHeader{"name": []string{"token"}})
+		part, err := writer.CreateFormField("token")
 		if err != nil {
 			return nil, "", err
 		}
