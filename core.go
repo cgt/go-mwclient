@@ -257,7 +257,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 
 	if w.Maxlag.On {
 		for tries := 0; tries < w.Maxlag.Retries; tries++ {
-			reqResp, err := callf()
+			resp, err := callf()
 
 			// Logic for handling maxlag errors. If err is nil or a different error,
 			// they are passed through in the else.
@@ -268,7 +268,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 				}
 				continue
 			} else {
-				return reqResp, err
+				return resp, err
 			}
 		}
 
