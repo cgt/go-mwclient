@@ -182,13 +182,13 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 
 		// Check the length of text parameters; if any are big, we should
 		// use multipart/form-data per https://www.mediawiki.org/wiki/API:Edit#Large_edits
-		var useMultipart bool
-		useMultipart = areParamsTooBig(p)
+		var useMultipartEncoding bool
+		useMultipartEncoding = areParamsTooBig(p)
 
 		var req *http.Request
 		var err error
 		var multipartContentType string
-		if useMultipart {
+		if useMultipartEncoding {
 			var body string
 			body, multipartContentType, err = p.EncodeMultipart()
 
@@ -208,7 +208,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 
 		// Set headers on request
 		req.Header.Set("User-Agent", w.UserAgent)
-		if useMultipart {
+		if useMultipartEncoding {
 			req.Header.Set("Content-Type", multipartContentType)
 		} else if post {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
