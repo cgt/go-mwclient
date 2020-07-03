@@ -98,17 +98,18 @@ func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
 
 	var token bool
 
-	for paramName, paramContents := range v {
+	keys := v.sortKeys()
+	for _, paramName := range keys {
 		if paramName == "token" {
 			token = true
 			continue
 		}
-		if paramContents != "" {
+		if v[paramName] != "" {
 			part, err := writer.CreatePart(textproto.MIMEHeader{"name": []string{paramName}})
 			if err != nil {
 				return nil, "", err
 			}
-			part.Write([]byte(paramContents))
+			part.Write([]byte(v[paramName]))
 		}
 	}
 
@@ -133,11 +134,7 @@ func (v Values) encode() string {
 	}
 
 	var buf bytes.Buffer
-	keys := make([]string, 0, len(v))
-	for k := range v {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
+	keys := v.sortKeys()
 	token := false
 	for _, k := range keys {
 		if k == "token" {
@@ -155,4 +152,16 @@ func (v Values) encode() string {
 		buf.WriteString("&token=" + url.QueryEscape(v["token"]))
 	}
 	return buf.String()
+}
+
+// sortKeys sorts the keys of the parameters
+// into an alphabetical order, to ensure that
+// the ordering is consistent
+func (v Values) sortKeys() []string {
+	keys := make([]string, 0, len(v))
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

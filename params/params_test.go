@@ -17,8 +17,8 @@ type EncodeQueryTest struct {
 
 var encodeQueryTests = []EncodeQueryTest{
 	{nil, "", ""},
-	{Values{"q": "puppies", "oe": "utf8"}, "oe=utf8&q=puppies", "--!BOUNDARY!\r\nname: q\r\n\r\npuppies\r\n--!BOUNDARY!\r\nname: oe\r\n\r\nutf8\r\n--!BOUNDARY!--\r\n"},
-	{Values{"x": "c", "token": "t", "a": "b"}, "a=b&x=c&token=t", "--!BOUNDARY!\r\nname: x\r\n\r\nc\r\n--!BOUNDARY!\r\nname: a\r\n\r\nb\r\n--!BOUNDARY!\r\nname: token\r\n\r\nt\r\n--!BOUNDARY!--\r\n"},
+	{Values{"q": "puppies", "oe": "utf8"}, "oe=utf8&q=puppies", "--!BOUNDARY!\r\nname: oe\r\n\r\nutf8\r\n--!BOUNDARY!\r\nname: q\r\n\r\npuppies\r\n--!BOUNDARY!--\r\n"},
+	{Values{"x": "c", "token": "t", "a": "b"}, "a=b&x=c&token=t", "--!BOUNDARY!\r\nname: a\r\n\r\nb\r\n--!BOUNDARY!\r\nname: x\r\n\r\nc\r\n--!BOUNDARY!\r\nname: token\r\n\r\nt\r\n--!BOUNDARY!--\r\n"},
 }
 
 func TestEncodeQuery(t *testing.T) {
@@ -32,8 +32,9 @@ func TestEncodeQuery(t *testing.T) {
 func TestEncodeMultipartQuery(t *testing.T) {
 	for _, tt := range encodeQueryTests {
 		buf, ctype, _ := tt.m.EncodeMultipart()
-		if buf.String() != strings.ReplaceAll(tt.multipart, "!BOUNDARY!", strings.TrimPrefix(ctype, "multipart/form-data; boundary=")) {
-			t.Errorf(`EncodeMultipartQuery(%+v) = %q, want %q`, tt.m, buf.String(), tt.multipart)
+		valid := strings.ReplaceAll(tt.multipart, "!BOUNDARY!", strings.TrimPrefix(ctype, "multipart/form-data; boundary="))
+		if buf.String() != valid {
+			t.Errorf(`EncodeMultipartQuery(%+v) = %q, want %q`, tt.m, buf.String(), valid)
 		}
 	}
 }
