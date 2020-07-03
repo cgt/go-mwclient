@@ -182,8 +182,7 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 
 		// Check the length of text parameters; if any are big, we should
 		// use multipart/form-data per https://www.mediawiki.org/wiki/API:Edit#Large_edits
-		var useMultipartEncoding bool
-		useMultipartEncoding = areParamsTooBig(p)
+		useMultipartEncoding := areParamsTooBig(p)
 
 		var req *http.Request
 		var err error
