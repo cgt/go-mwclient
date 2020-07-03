@@ -1,22 +1,29 @@
 name: Go
-on: [push]
+on: [push, pull_request]
 jobs:
 
   build:
     name: Build
     runs-on: ubuntu-latest
+    env:
+      GOPATH: ${{ github.workspace }}
+      GO111MODULE: off
+
     steps:
 
-    - name: Set up Go 1.12
-      uses: actions/setup-go@v1
+    - name: Set up Go 1.14
+      uses: actions/setup-go@v2
       with:
-        go-version: 1.12
+        go-version: 1.14
       id: go
 
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+      with:
+        path: ./src/cgt.name/pkg/go-mwclient
 
     - name: Get dependencies
+      working-directory: ./src/cgt.name/pkg/go-mwclient
       run: |
         go get -v -t -d ./...
         if [ -f Gopkg.toml ]; then
@@ -25,7 +32,9 @@ jobs:
         fi
 
     - name: Build
-      run: go build -v .
-    
+      working-directory: ./src/cgt.name/pkg/go-mwclient
+      run: go build -v ./...
+
     - name: Test
-      run: go test -v .
+      working-directory: ./src/cgt.name/pkg/go-mwclient
+      run: go test -v ./...
