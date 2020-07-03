@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Changes that are required to maintain compatibility with new versions of
 MediaWiki are not considered breaking changes.
 
+## [1.2.0] - 2020-07-03
+### Changed
+- As [recommended in the MediaWiki API documentation](https://www.mediawiki.org/wiki/API:Edit#Large_edits),
+  large API requests (more than 8000 characters) will be sent as
+  `multipart/form-data` instead of `application/x-www-form-urlencoded`.
 
 ## [1.1.0] - 2020-01-10
 ### Added
