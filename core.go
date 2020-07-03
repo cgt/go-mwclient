@@ -164,11 +164,9 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 			// utf8= is implicit in formatversion=2
 		}
 
-		if w.Maxlag.On {
-			if p.Get("maxlag") == "" {
-				// User has not set maxlag param manually. Use configured value.
-				p.Set("maxlag", w.Maxlag.Timeout)
-			}
+		if w.Maxlag.On && p.Get("maxlag") == "" {
+			// User has not set maxlag param manually. Use configured value.
+			p.Set("maxlag", w.Maxlag.Timeout)
 		}
 
 		switch w.Assert {
