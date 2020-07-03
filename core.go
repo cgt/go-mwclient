@@ -181,51 +181,30 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 			}
 		}
 
-		// Make a POST or GET request depending on the "post" parameter.
-		var httpMethod string
-		if post {
-			httpMethod = "POST"
-		} else {
-			httpMethod = "GET"
-		}
-
 		// Check the length of text parameters; if any are big, we should
 		// use multipart/form-data per https://www.mediawiki.org/wiki/API:Edit#Large_edits
 		var useMultipart bool
-		paramsTooBig := func(params map[string]string) bool {
-			for _, value := range params {
-				if len(value) > maxSizeForQueryString {
-					return true
-				}
-			}
-			return false
-		}
-		useMultipart = paramsTooBig(p)
+		useMultipart = areParamsTooBig(p)
 
 		var req *http.Request
 		var err error
 		var multipartContentType string
 		if useMultipart {
-			httpMethod = "multipart POST"
-
 			var body *bytes.Buffer
 			body, multipartContentType, err = p.EncodeMultipart()
 
 			if err != nil {
-				return nil, fmt.Errorf("unable to encode parameters as multipart (method: %s, params: %v): %v",
-					httpMethod, p, err)
+				return nil, fmt.Errorf("unable to encode parameters as multipart (params: %v): %v", p, err)
 			}
-			req, err = http.NewRequest("POST", w.apiURL.String(), body)
+			req, err = http.Post(w.apiURL.String(), body)
+		} else if post {
+			req, err = http.Post(w.apiURL.String(), strings.NewReader(p.Encode()))
 		} else {
-			if post {
-				req, err = http.NewRequest(httpMethod, w.apiURL.String(), strings.NewReader(p.Encode()))
-			} else {
-				req, err = http.NewRequest(httpMethod, fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
-			}
+			req, err = http.Get(fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
 		}
+
 		if err != nil {
-			return nil, fmt.Errorf("unable to create HTTP request (method: %s, params: %v): %v",
-				httpMethod, p, err)
+			return nil, fmt.Errorf("unable to create HTTP request (params: %v): %v", p, err)
 		}
 
 		// Set headers on request
@@ -444,4 +423,16 @@ func (w *Client) OAuth(consumerToken, consumerSecret, accessToken, accessSecret 
 	w.httpc = httpc
 
 	return nil
+}
+
+// areParamsTooBig determines whether any of the params.Values
+// passed to it are over the maxSizeForQueryString. It is used
+// to set whether a request will be multipart or not.
+func areParamsTooBig(params params.Values) bool {
+	for _, value := range params {
+		if len(value) > maxSizeForQueryString {
+			return true
+		}
+	}
+	return false
 }

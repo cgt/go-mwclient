@@ -182,7 +182,7 @@ func TestMaxlagRetryFail(t *testing.T) {
 }
 
 func TestMultipartOffForSmallParameters(t *testing.T) {
-	smolH := strings.Repeat("h", 7500)
+	smallPayload := strings.Repeat("h", 7500)
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
 		if err != nil {
@@ -191,7 +191,7 @@ func TestMultipartOffForSmallParameters(t *testing.T) {
 		if r.Method != "GET" {
 			t.Fatalf("bad HTTP method: %s", r.Method)
 		}
-		if r.Form.Get("test") != smolH {
+		if r.Form.Get("test") != smallPayload {
 			t.Fatalf("test param not set or incorrect. Params: %s", r.Form.Encode())
 		}
 	}
@@ -200,13 +200,13 @@ func TestMultipartOffForSmallParameters(t *testing.T) {
 	defer server.Close()
 
 	p := params.Values{
-		"test": smolH,
+		"test": smallPayload,
 	}
 	client.call(p, false)
 }
 
 func TestMultipartOnForLargeParameters(t *testing.T) {
-	bigH := strings.Repeat("h", 8500)
+	bigPayload := strings.Repeat("h", 8500)
 	httpHandler := func(w http.ResponseWriter, r *http.Request) {
 		err := r.ParseMultipartForm(10000)
 		if err != nil {
@@ -215,7 +215,7 @@ func TestMultipartOnForLargeParameters(t *testing.T) {
 		if r.Method != "POST" {
 			t.Fatalf("bad HTTP method: %s", r.Method)
 		}
-		if len(r.MultipartForm.Value["test"]) == 1 && r.MultipartForm.Value["test"][0] != bigH {
+		if len(r.MultipartForm.Value["test"]) == 1 && r.MultipartForm.Value["test"][0] != bigPayload {
 			t.Fatalf("test param not set or incorrect. Params: %s", r.PostForm.Encode())
 		}
 	}
@@ -224,7 +224,7 @@ func TestMultipartOnForLargeParameters(t *testing.T) {
 	defer server.Close()
 
 	p := params.Values{
-		"test": bigH,
+		"test": bigPayload,
 	}
 	client.call(p, false)
 }

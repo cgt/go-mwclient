@@ -12,6 +12,7 @@ package params // import "cgt.name/pkg/go-mwclient/params"
 
 import (
 	"bytes"
+	"io"
 	"mime/multipart"
 	"net/url"
 	"sort"
@@ -81,15 +82,38 @@ func (v Values) Del(key string) {
 // ensure that an action will not be executed if the query string has been cut
 // off for some reason.
 func (v Values) Encode() string {
-	return v.encode()
+	if v == nil {
+		return ""
+	}
+
+	var buf bytes.Buffer
+	keys := v.sortKeys()
+	token := false
+	for _, k := range keys {
+		if k == "token" {
+			token = true
+			continue
+		}
+		prefix := url.QueryEscape(k) + "="
+		if buf.Len() > 0 {
+			buf.WriteByte('&')
+		}
+		buf.WriteString(prefix)
+		buf.WriteString(url.QueryEscape(v[k]))
+	}
+	if token {
+		buf.WriteString("&token=" + url.QueryEscape(v["token"]))
+	}
+	return buf.String()
 }
 
-// EncodeMultipart returns a ``multipart encoded'' byte buffer
-// with the parameters, along with a Content-Type header string to use,
-// and an error if something somehow goes dramatically wrong.
-func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
+// EncodeMultipart returns a ``multipart encoded'' version of
+// the parameters in an io.Reader, along with a Content-Type
+// header string to use, and an error if something somehow
+// goes dramatically wrong.
+func (v Values) EncodeMultipart() (io.Reader, string, error) {
 	if v == nil {
-		return bytes.NewBufferString(""), "multipart/form-data; boundary=none", nil
+		return bytes.NewBuffer([]byte{}), "multipart/form-data; boundary=none", nil
 	}
 
 	body := &bytes.Buffer{}
@@ -123,34 +147,6 @@ func (v Values) EncodeMultipart() (*bytes.Buffer, string, error) {
 	writer.Close()
 
 	return body, writer.FormDataContentType(), nil
-}
-
-// encode takes the values and encodes them into URL escaped
-// parameters (see Encode())
-func (v Values) encode() string {
-	if v == nil {
-		return ""
-	}
-
-	var buf bytes.Buffer
-	keys := v.sortKeys()
-	token := false
-	for _, k := range keys {
-		if k == "token" {
-			token = true
-			continue
-		}
-		prefix := url.QueryEscape(k) + "="
-		if buf.Len() > 0 {
-			buf.WriteByte('&')
-		}
-		buf.WriteString(prefix)
-		buf.WriteString(url.QueryEscape(v[k]))
-	}
-	if token {
-		buf.WriteString("&token=" + url.QueryEscape(v["token"]))
-	}
-	return buf.String()
 }
 
 // sortKeys sorts the keys of the parameters

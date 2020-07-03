@@ -5,6 +5,7 @@
 package params
 
 import (
+	"io"
 	"strings"
 	"testing"
 )
@@ -36,8 +37,14 @@ func TestEncodeQuery(t *testing.T) {
 
 func TestEncodeMultipartQuery(t *testing.T) {
 	for _, tt := range encodeQueryTests {
-		buf, ctype, _ := tt.m.EncodeMultipart()
+		reader, ctype, _ := tt.m.EncodeMultipart()
 		valid := strings.ReplaceAll(tt.multipart, "!BOUNDARY!", strings.TrimPrefix(ctype, "multipart/form-data; boundary="))
+
+		buf := new(strings.Builder)
+		_, err := io.Copy(buf, reader)
+		if err != nil {
+			panic(err)
+		}
 		if buf.String() != valid {
 			t.Errorf(`EncodeMultipartQuery(%+v) = %q, want %q`, tt.m, buf.String(), valid)
 		}
