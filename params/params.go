@@ -12,7 +12,6 @@ package params // import "cgt.name/pkg/go-mwclient/params"
 
 import (
 	"bytes"
-	"io"
 	"mime/multipart"
 	"net/url"
 	"sort"
@@ -108,12 +107,12 @@ func (v Values) Encode() string {
 }
 
 // EncodeMultipart returns a ``multipart encoded'' version of
-// the parameters in an io.Reader, along with a Content-Type
+// the parameters as a string, along with a Content-Type
 // header string to use, and an error if something somehow
 // goes dramatically wrong.
-func (v Values) EncodeMultipart() (io.Reader, string, error) {
+func (v Values) EncodeMultipart() (data string, contentType string, err error) {
 	if v == nil {
-		return bytes.NewBuffer([]byte{}), "multipart/form-data; boundary=none", nil
+		return "", "multipart/form-data; boundary=none", nil
 	}
 
 	body := &bytes.Buffer{}
@@ -130,7 +129,7 @@ func (v Values) EncodeMultipart() (io.Reader, string, error) {
 		if v[paramName] != "" {
 			part, err := writer.CreateFormField(paramName)
 			if err != nil {
-				return nil, "", err
+				return "", "", err
 			}
 			part.Write([]byte(v[paramName]))
 		}
@@ -139,14 +138,14 @@ func (v Values) EncodeMultipart() (io.Reader, string, error) {
 	if token {
 		part, err := writer.CreateFormField("token")
 		if err != nil {
-			return nil, "", err
+			return "", "", err
 		}
 		part.Write([]byte(v["token"]))
 	}
 
 	writer.Close()
 
-	return body, writer.FormDataContentType(), nil
+	return body.String(), writer.FormDataContentType(), nil
 }
 
 // sortKeys sorts the keys of the parameters

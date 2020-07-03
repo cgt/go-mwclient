@@ -1,7 +1,6 @@
 package mwclient
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -190,17 +189,17 @@ func (w *Client) call(p params.Values, post bool) (io.ReadCloser, error) {
 		var err error
 		var multipartContentType string
 		if useMultipart {
-			var body *bytes.Buffer
+			var body string
 			body, multipartContentType, err = p.EncodeMultipart()
 
 			if err != nil {
 				return nil, fmt.Errorf("unable to encode parameters as multipart (params: %v): %v", p, err)
 			}
-			req, err = http.Post(w.apiURL.String(), body)
+			req, err = http.NewRequest("POST", w.apiURL.String(), strings.NewReader(body))
 		} else if post {
-			req, err = http.Post(w.apiURL.String(), strings.NewReader(p.Encode()))
+			req, err = http.NewRequest("POST", w.apiURL.String(), strings.NewReader(p.Encode()))
 		} else {
-			req, err = http.Get(fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
+			req, err = http.NewRequest("GET", fmt.Sprintf("%s?%s", w.apiURL.String(), p.Encode()), nil)
 		}
 
 		if err != nil {
