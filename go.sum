@@ -1,0 +1,4 @@
+github.com/antonholmquist/jason v1.0.0 h1:Ytg94Bcf1Bfi965K2q0s22mig/n4eGqEij/atENBhA0=
+github.com/antonholmquist/jason v1.0.0/go.mod h1:+GxMEKI0Va2U8h3os6oiUAetHAlGMvxjdpAH/9uvUMA=
+github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 h1:j2kD3MT1z4PXCiUllUJF9mWUESr9TWKS7iEKsQ/IipM=
+github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450/go.mod h1:skjdDftzkFALcuGzYSklqYd8gvat6F1gZJ4YPVbkZpM=
