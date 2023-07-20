@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Changes that are required to maintain compatibility with new versions of
 MediaWiki are not considered breaking changes.
 
+## [1.3.0] - 2023-07-20
+###
+- Fix login for private wikis. [Issue #17](https://github.com/cgt/go-mwclient/issues/17)
+
 ## [1.2.0] - 2020-07-03
 ### Changed
 - As [recommended in the MediaWiki API documentation](https://www.mediawiki.org/wiki/API:Edit#Large_edits),
