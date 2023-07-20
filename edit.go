@@ -25,11 +25,14 @@ var ErrPageNotFound = errors.New("wiki page not found")
 // (i.e., the new text was identical to the current text)
 // then ErrEditNoChange is returned.
 // The p (params.Values) argument should contain parameters from:
+//
 //	https://www.mediawiki.org/wiki/API:Edit#Parameters
+//
 // Edit will set the 'action' and 'token' parameters automatically, but if the
 // token field in p is non-empty, Edit will not override it.
 // Edit does not check p for sanity.
 // p example:
+//
 //	params.Values{
 //		"pageid":   "709377",
 //		"text":     "Complete new text for page",
@@ -254,7 +257,8 @@ func (w *Client) GetPagesByID(pageIDs ...string) (pages map[string]BriefRevision
 
 // These consts represents MW API token names.
 // They are meant to be used with the GetToken method like so:
-// 	ClientInstance.GetToken(mwclient.CSRFToken)
+//
+//	ClientInstance.GetToken(mwclient.CSRFToken)
 const (
 	CSRFToken                   = "csrf"
 	DeleteGlobalAccountToken    = "deleteglobalaccount"
@@ -281,10 +285,9 @@ func (w *Client) GetToken(tokenName string) (string, error) {
 	}
 
 	p := params.Values{
-		"action":   "query",
-		"meta":     "tokens",
-		"type":     tokenName,
-		"continue": "",
+		"action": "query",
+		"meta":   "tokens",
+		"type":   tokenName,
 	}
 
 	resp, err := w.Get(p)
